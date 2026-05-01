@@ -12,6 +12,16 @@ CPMAddPackage(
     GIT_TAG 8.0.12
 )
 
+# --- RTNeural (Eigen backend) ---
+set(RTNEURAL_EIGEN ON  CACHE BOOL "" FORCE)
+set(RTNEURAL_XSIMD OFF CACHE BOOL "" FORCE)
+set(RTNEURAL_STL   OFF CACHE BOOL "" FORCE)
+CPMAddPackage(
+    NAME RTNeural
+    GITHUB_REPOSITORY jatinchowdhury18/RTNeural
+    GIT_TAG 1fb1f075a5d66e85bfc8f488c3f3626840cb3a1d
+)
+
 # Copy juce-framework-frontend into the WebUI tree at configure time so that
 # the npm local-file dependency resolves without relying on the volatile _deps path.
 file(COPY "${JUCE_SOURCE_DIR}/modules/juce_gui_extra/native/javascript/"
@@ -48,7 +58,14 @@ juce_add_binary_data(BossDS1WebUI
 
 add_dependencies(BossDS1WebUI BossDS1WebUIBuild)
 
-juce_add_plugin(MidiRouter
+juce_add_binary_data(BossDS1Models
+    HEADER_NAME DS1ModelData.h
+    NAMESPACE   DS1ModelData
+    SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Models/lstm_model.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Models/gru_model.json")
+
+juce_add_plugin(Boss_DS1
     VERSION                     0.0.0
     COMPANY_NAME                "Partial Audio"
     BUNDLE_ID                   "com.PartialAudio.ds1"
@@ -62,27 +79,29 @@ juce_add_plugin(MidiRouter
     FORMATS                     AU VST3 Standalone
     PRODUCT_NAME                "Boss DS-1")
 
-target_sources(MidiRouter
+target_sources(Boss_DS1
     PRIVATE
         Source/Core/PluginEditor.cpp
         Source/Core/PluginProcessor.cpp
         Source/DSP/ML_Engine.cpp
         Source/DSP/OversamplingWrapper.cpp)
 
-target_include_directories(MidiRouter
+target_include_directories(Boss_DS1
     PRIVATE
         Source/Core
         Source/DSP)
 
-target_compile_definitions(MidiRouter
+target_compile_definitions(Boss_DS1
     PUBLIC
         JUCE_WEB_BROWSER=1
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
 
-target_link_libraries(MidiRouter
+target_link_libraries(Boss_DS1
     PRIVATE
         BossDS1WebUI
+        BossDS1Models
+        RTNeural
         juce::juce_audio_utils
         juce::juce_gui_extra
     PUBLIC
