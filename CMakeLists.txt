@@ -69,9 +69,9 @@ juce_add_plugin(Boss_DS1
     VERSION                     0.0.0
     COMPANY_NAME                "Partial Audio"
     BUNDLE_ID                   "com.PartialAudio.ds1"
-    IS_SYNTH                    TRUE
-    NEEDS_MIDI_INPUT            TRUE
-    NEEDS_MIDI_OUTPUT           TRUE
+    IS_SYNTH                    FALSE
+    NEEDS_MIDI_INPUT            FALSE
+    NEEDS_MIDI_OUTPUT           FALSE
     NEEDS_WEB_BROWSER           TRUE
     COPY_PLUGIN_AFTER_BUILD     TRUE
     PLUGIN_MANUFACTURER_CODE    PaLK
