@@ -96,7 +96,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     webComponent.goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
   #endif
 
-    setSize (420, 320);
+    setSize (600, 350);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {}
