@@ -13,6 +13,7 @@ CPMAddPackage(
 )
 
 # --- RTNeural (Eigen backend) ---
+# pining to tag at time of writing
 set(RTNEURAL_EIGEN ON  CACHE BOOL "" FORCE)
 set(RTNEURAL_XSIMD OFF CACHE BOOL "" FORCE)
 set(RTNEURAL_STL   OFF CACHE BOOL "" FORCE)
