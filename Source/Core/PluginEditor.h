@@ -21,9 +21,10 @@ private:
     AudioPluginAudioProcessor& processorRef;
 
     // Relays must be declared before webComponent — construction order matters
-    juce::WebSliderRelay   driveRelay { "drive" };
-    juce::WebSliderRelay   levelRelay { "level" };
-    juce::WebComboBoxRelay modelRelay { "model" };
+    juce::WebSliderRelay   driveRelay  { "drive" };
+    juce::WebSliderRelay   levelRelay  { "level" };
+    juce::WebComboBoxRelay modelRelay  { "model" };
+    juce::WebSliderRelay   bypassRelay { "bypass" };
 
     struct SinglePageBrowser : juce::WebBrowserComponent
     {
@@ -37,6 +38,7 @@ private:
     juce::WebSliderParameterAttachment   driveAttachment;
     juce::WebSliderParameterAttachment   levelAttachment;
     juce::WebComboBoxParameterAttachment modelAttachment;
+    juce::WebSliderParameterAttachment   bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

@@ -81,12 +81,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                         .withOptionsFrom (driveRelay)
                         .withOptionsFrom (levelRelay)
                         .withOptionsFrom (modelRelay)
+                        .withOptionsFrom (bypassRelay)
                         .withResourceProvider (
                             [this] (const auto& url) { return getResource (url); },
                             juce::URL { localDevServerAddress }.getOrigin())),
-      driveAttachment (*p.apvts.getParameter ("drive"), driveRelay, p.apvts.undoManager),
-      levelAttachment (*p.apvts.getParameter ("level"), levelRelay, p.apvts.undoManager),
-      modelAttachment (*p.apvts.getParameter ("model"), modelRelay, p.apvts.undoManager)
+      driveAttachment  (*p.apvts.getParameter ("drive"),  driveRelay,  p.apvts.undoManager),
+      levelAttachment  (*p.apvts.getParameter ("level"),  levelRelay,  p.apvts.undoManager),
+      modelAttachment  (*p.apvts.getParameter ("model"),  modelRelay,  p.apvts.undoManager),
+      bypassAttachment (*p.apvts.getParameter ("bypass"), bypassRelay, p.apvts.undoManager)
 {
     addAndMakeVisible (webComponent);
 
