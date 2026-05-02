@@ -4,12 +4,3 @@
 # IDE
 .idea
 .vscode/
-
-# CMake build directories
-cmake-build-*/
-build/
-
-# Web UI
-Resources/WebUI/node_modules/
-Resources/WebUI/node_modules_local/
-Resources/WebUI/dist/
