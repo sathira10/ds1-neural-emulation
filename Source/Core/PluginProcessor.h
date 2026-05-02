@@ -40,5 +40,14 @@ private:
     ML_Engine mlEngine;
     juce::AudioBuffer<float> monoScratch;
 
+    std::atomic<float>* driveParam  = nullptr;
+    std::atomic<float>* levelParam  = nullptr;
+    std::atomic<float>* modelParam  = nullptr;
+    std::atomic<float>* bypassParam = nullptr;
+
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> driveGainSmoothed { 1.0f };
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> levelGainSmoothed { 1.0f };
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>         wetnessSmoothed   { 1.0f };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

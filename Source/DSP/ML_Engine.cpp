@@ -155,6 +155,13 @@ void ML_Engine::runInference (float* samples, int numSamples) noexcept
             if (s) out += in;
             samples[i] = out;
         }
+
+        const auto range = juce::FloatVectorOperations::findMinAndMax (samples, numSamples);
+        if (! std::isfinite (range.getStart()) || ! std::isfinite (range.getEnd()))
+        {
+            gruModel.reset();
+            juce::FloatVectorOperations::clear (samples, numSamples);
+        }
     }
     else
     {
@@ -165,6 +172,13 @@ void ML_Engine::runInference (float* samples, int numSamples) noexcept
             float       out = lstmModel.forward (&in);
             if (s) out += in;
             samples[i] = out;
+        }
+
+        const auto range = juce::FloatVectorOperations::findMinAndMax (samples, numSamples);
+        if (! std::isfinite (range.getStart()) || ! std::isfinite (range.getEnd()))
+        {
+            lstmModel.reset();
+            juce::FloatVectorOperations::clear (samples, numSamples);
         }
     }
 }

@@ -1,6 +1,11 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+namespace {
+constexpr double kGainSmoothingSeconds   = 0.02;
+constexpr double kBypassCrossfadeSeconds = 0.015;
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
@@ -38,6 +43,10 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      ),
       apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
+    driveParam  = apvts.getRawParameterValue ("drive");
+    levelParam  = apvts.getRawParameterValue ("level");
+    modelParam  = apvts.getRawParameterValue ("model");
+    bypassParam = apvts.getRawParameterValue ("bypass");
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
@@ -86,6 +95,17 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     mlEngine.prepare (sampleRate, samplesPerBlock);
     monoScratch.setSize (1, samplesPerBlock, false, false, true);
     setLatencySamples (mlEngine.getLatencySamples());
+
+    driveGainSmoothed.reset (sampleRate, kGainSmoothingSeconds);
+    levelGainSmoothed.reset (sampleRate, kGainSmoothingSeconds);
+    wetnessSmoothed  .reset (sampleRate, kBypassCrossfadeSeconds);
+
+    driveGainSmoothed.setCurrentAndTargetValue (
+        juce::Decibels::decibelsToGain (driveParam->load() - 24.0f));
+    levelGainSmoothed.setCurrentAndTargetValue (
+        juce::Decibels::decibelsToGain (levelParam->load()));
+    wetnessSmoothed.setCurrentAndTargetValue (
+        bypassParam->load() > 0.5f ? 0.0f : 1.0f);
 }
 
 void AudioPluginAudioProcessor::releaseResources() {}
@@ -122,45 +142,76 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (int i = numInputChannels; i < numOutputChannels; ++i)
         buffer.clear (i, 0, numSamples);
 
-    const float inputGain  = juce::Decibels::decibelsToGain (apvts.getRawParameterValue ("drive")->load() - 24.0f);
-    const float outputGain = juce::Decibels::decibelsToGain (apvts.getRawParameterValue ("level")->load());
-    const int   modelIdx   = static_cast<int> (apvts.getRawParameterValue ("model")->load());
-    const bool  bypassed   = apvts.getRawParameterValue ("bypass")->load() > 0.5f;
+    // 1. Snapshot parameters via cached atomics — no string lookup per block.
+    const float driveGainTarget = juce::Decibels::decibelsToGain (driveParam->load() - 24.0f);
+    const float levelGainTarget = juce::Decibels::decibelsToGain (levelParam->load());
+    const int   modelIdx        = static_cast<int> (modelParam->load());
+    const bool  bypassed        = bypassParam->load() > 0.5f;
 
-    // Apply input gain to all input channels.
-    for (int ch = 0; ch < numInputChannels; ++ch)
-        buffer.applyGain (ch, 0, numSamples, inputGain);
+    driveGainSmoothed.setTargetValue (driveGainTarget);
+    levelGainSmoothed.setTargetValue (levelGainTarget);
+    wetnessSmoothed  .setTargetValue (bypassed ? 0.0f : 1.0f);
 
-    // Update active model unconditionally so a switch made during bypass takes
-    // effect (with hidden state reset) before the next un-bypassed block.
+    // 2. Drive (smoothed ramp) applied to every input channel.
+    {
+        const float startG = driveGainSmoothed.getCurrentValue();
+        driveGainSmoothed.skip (numSamples);
+        const float endG   = driveGainSmoothed.getCurrentValue();
+        for (int ch = 0; ch < numInputChannels; ++ch)
+            buffer.applyGainRamp (ch, 0, numSamples, startG, endG);
+    }
+
+    // 3. Always update the active model so a switch made during bypass resets
+    //    the incoming model's hidden state before the next un-bypassed block.
     mlEngine.setActiveModel (modelIdx);
 
-    if (! bypassed)
+    // 4. Run the model only when the wet path contributes to output — either
+    //    actively un-bypassed, or still fading out after a bypass press.
+    const bool needWet = wetnessSmoothed.isSmoothing() || ! bypassed;
+
+    if (needWet)
     {
-        // Sum to mono (or copy if already mono). Model is mono in / mono out.
         auto* mono = monoScratch.getWritePointer (0);
+
         if (numInputChannels >= 2)
         {
-            const auto* L = buffer.getReadPointer (0);
-            const auto* R = buffer.getReadPointer (1);
-            for (int i = 0; i < numSamples; ++i)
-                mono[i] = 0.5f * (L[i] + R[i]);
+            juce::FloatVectorOperations::copyWithMultiply (mono, buffer.getReadPointer (0), 0.5f, numSamples);
+            juce::FloatVectorOperations::addWithMultiply  (mono, buffer.getReadPointer (1), 0.5f, numSamples);
         }
         else
         {
             juce::FloatVectorOperations::copy (mono, buffer.getReadPointer (0), numSamples);
         }
 
-        // ML inference — if engine is not yet valid (placeholder models) audio passes through.
+        // ML inference — passthrough if engine isn't valid (placeholder models).
         mlEngine.process (mono, numSamples);
 
-        // Splat mono output to all output channels.
+        // Per-channel crossfade: dry = current buffer content, wet = mono model output.
         for (int ch = 0; ch < numOutputChannels; ++ch)
-            juce::FloatVectorOperations::copy (buffer.getWritePointer (ch), mono, numSamples);
+        {
+            auto* dst     = buffer.getWritePointer (ch);
+            auto  smoother = wetnessSmoothed;
+            for (int i = 0; i < numSamples; ++i)
+            {
+                const float w = smoother.getNextValue();
+                dst[i] = (1.0f - w) * dst[i] + w * mono[i];
+            }
+        }
+        wetnessSmoothed.skip (numSamples);
+    }
+    else
+    {
+        wetnessSmoothed.skip (numSamples);
     }
 
-    // Apply output gain.
-    buffer.applyGain (outputGain);
+    // 5. Level (smoothed ramp) applied to all output channels.
+    {
+        const float startG = levelGainSmoothed.getCurrentValue();
+        levelGainSmoothed.skip (numSamples);
+        const float endG   = levelGainSmoothed.getCurrentValue();
+        for (int ch = 0; ch < numOutputChannels; ++ch)
+            buffer.applyGainRamp (ch, 0, numSamples, startG, endG);
+    }
 }
 
 //==============================================================================
