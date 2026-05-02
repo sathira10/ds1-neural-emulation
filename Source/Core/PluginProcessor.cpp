@@ -7,18 +7,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         "drive", "Drive",
-        juce::NormalisableRange<float> (-20.0f, 20.0f, 0.1f),
+        juce::NormalisableRange<float> (-24.0f, 24.0f, 0.1f),
         0.0f, "dB"));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         "level", "Level",
-        juce::NormalisableRange<float> (-20.0f, 20.0f, 0.1f),
+        juce::NormalisableRange<float> (-24.0f, 24.0f, 0.1f),
         0.0f, "dB"));
 
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         "model", "Model",
         juce::StringArray { "LSTM", "GRU" },
         0));
+
+    layout.add (std::make_unique<juce::AudioParameterBool> (
+        "bypass", "Bypass", false));
 
     return layout;
 }
@@ -78,7 +81,13 @@ const juce::String AudioPluginAudioProcessor::getProgramName (int) { return {}; 
 void AudioPluginAudioProcessor::changeProgramName (int, const juce::String&) {}
 
 //==============================================================================
-void AudioPluginAudioProcessor::prepareToPlay (double, int) {}
+void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    mlEngine.prepare (sampleRate, samplesPerBlock);
+    monoScratch.setSize (1, samplesPerBlock, false, false, true);
+    setLatencySamples (mlEngine.getLatencySamples());
+}
+
 void AudioPluginAudioProcessor::releaseResources() {}
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -106,33 +115,52 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    const int numSamples        = buffer.getNumSamples();
+    const int numInputChannels  = getTotalNumInputChannels();
+    const int numOutputChannels = getTotalNumOutputChannels();
 
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    for (int i = numInputChannels; i < numOutputChannels; ++i)
+        buffer.clear (i, 0, numSamples);
 
-    const float inputGain  = juce::Decibels::decibelsToGain (
-                                 apvts.getRawParameterValue ("drive")->load());
-    const float outputGain = juce::Decibels::decibelsToGain (
-                                 apvts.getRawParameterValue ("level")->load());
+    const float inputGain  = juce::Decibels::decibelsToGain (apvts.getRawParameterValue ("drive")->load() - 24.0f);
+    const float outputGain = juce::Decibels::decibelsToGain (apvts.getRawParameterValue ("level")->load());
+    const int   modelIdx   = static_cast<int> (apvts.getRawParameterValue ("model")->load());
+    const bool  bypassed   = apvts.getRawParameterValue ("bypass")->load() > 0.5f;
 
-    // const int modelChoice = (int) apvts.getRawParameterValue ("model")->load();
-    // 0 = LSTM, 1 = GRU — pass to ML_Engine once implemented
+    // Apply input gain to all input channels.
+    for (int ch = 0; ch < numInputChannels; ++ch)
+        buffer.applyGain (ch, 0, numSamples, inputGain);
 
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    // Update active model unconditionally so a switch made during bypass takes
+    // effect (with hidden state reset) before the next un-bypassed block.
+    mlEngine.setActiveModel (modelIdx);
+
+    if (! bypassed)
     {
-        auto* data = buffer.getWritePointer (channel);
-        const int numSamples = buffer.getNumSamples();
+        // Sum to mono (or copy if already mono). Model is mono in / mono out.
+        auto* mono = monoScratch.getWritePointer (0);
+        if (numInputChannels >= 2)
+        {
+            const auto* L = buffer.getReadPointer (0);
+            const auto* R = buffer.getReadPointer (1);
+            for (int i = 0; i < numSamples; ++i)
+                mono[i] = 0.5f * (L[i] + R[i]);
+        }
+        else
+        {
+            juce::FloatVectorOperations::copy (mono, buffer.getReadPointer (0), numSamples);
+        }
 
-        for (int i = 0; i < numSamples; ++i)
-            data[i] *= inputGain;
+        // ML inference — if engine is not yet valid (placeholder models) audio passes through.
+        mlEngine.process (mono, numSamples);
 
-        // ML_Engine::process (data, numSamples, modelChoice) goes here
-
-        for (int i = 0; i < numSamples; ++i)
-            data[i] *= outputGain;
+        // Splat mono output to all output channels.
+        for (int ch = 0; ch < numOutputChannels; ++ch)
+            juce::FloatVectorOperations::copy (buffer.getWritePointer (ch), mono, numSamples);
     }
+
+    // Apply output gain.
+    buffer.applyGain (outputGain);
 }
 
 //==============================================================================
