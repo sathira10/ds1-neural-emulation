@@ -101,7 +101,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     wetnessSmoothed  .reset (sampleRate, kBypassCrossfadeSeconds);
 
     driveGainSmoothed.setCurrentAndTargetValue (
-        juce::Decibels::decibelsToGain (driveParam->load() - 24.0f));
+        juce::Decibels::decibelsToGain (driveParam->load()));
     levelGainSmoothed.setCurrentAndTargetValue (
         juce::Decibels::decibelsToGain (levelParam->load()));
     wetnessSmoothed.setCurrentAndTargetValue (
@@ -143,7 +143,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         buffer.clear (i, 0, numSamples);
 
     // 1. Snapshot parameters via cached atomics — no string lookup per block.
-    const float driveGainTarget = juce::Decibels::decibelsToGain (driveParam->load() - 24.0f);
+    const float driveGainTarget = juce::Decibels::decibelsToGain (driveParam->load());
     const float levelGainTarget = juce::Decibels::decibelsToGain (levelParam->load());
     const int   modelIdx        = static_cast<int> (modelParam->load());
     const bool  bypassed        = bypassParam->load() > 0.5f;

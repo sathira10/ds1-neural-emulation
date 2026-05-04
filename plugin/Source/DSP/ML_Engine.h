@@ -30,7 +30,7 @@ public:
 
 private:
     static constexpr int kModelSampleRate = 44100;
-    static constexpr int kHiddenSize      = 32;
+    static constexpr int kHiddenSize      = 24;
 
     using LSTMModel = RTNeural::ModelT<float, 1, 1,
         RTNeural::LSTMLayerT<float, 1, kHiddenSize>,
