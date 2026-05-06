@@ -1,1 +1,86 @@
 \chapter{Discussion}
+
+\section{Purpose of the Discussion}
+
+\begin{itemize}
+    \item Interpret the results in relation to the research question rather than repeating the numerical findings.
+    \item Explain what the GRU/LSTM comparison suggests about recurrent architecture choice for real-time distortion plugins.
+    \item Connect technical findings back to the literature on virtual analog modelling and neural audio systems.
+    \item Reflect on the practice-based research process and the knowledge produced through building the artefact.
+\end{itemize}
+
+\section{Answering the Research Question}
+
+\begin{itemize}
+    \item Discuss whether the compact recurrent models accurately emulate the DS-1 according to ESR and other objective evidence.
+    \item Discuss whether the plugin artefact demonstrates practical real-time feasibility within the tested conditions.
+    \item Address the second part of the question directly: whether GRU or LSTM provides the better balance of accuracy and computational efficiency.
+    \item Avoid claiming perceptual indistinguishability unless supported by listening-test evidence.
+\end{itemize}
+
+\section{Interpreting the GRU and LSTM Trade-Off}
+
+\begin{itemize}
+    \item Discuss the measured accuracy difference between the two architectures once final ESR values are available.
+    \item Interpret the parameter-count difference: the GRU uses fewer parameters because it has three gate groups instead of LSTM's four.
+    \item Consider whether any LSTM accuracy advantage, if present, justifies its higher parameter count in a real-time plugin.
+    \item Consider whether the GRU's lower complexity makes it the stronger practical choice when accuracy is similar.
+\end{itemize}
+
+\section{Relationship to Existing Literature}
+
+\begin{itemize}
+    \item Relate the findings to prior work on RNN-based virtual analog modelling.
+    \item Discuss whether the results support the broader claim that recurrent models are suitable for nonlinear audio devices with memory.
+    \item Compare the project's practical constraints with the literature: single hardware target, compact model size, and real-time C\texttt{++} deployment.
+    \item Identify where this project extends previous work through its matched GRU/LSTM comparison on a Boss DS-1.
+\end{itemize}
+
+\section{Practice-Based Research Reflection}
+
+\begin{itemize}
+    \item Discuss what was learned through building the dataset, training pipeline, export path, and plugin.
+    \item Explain how practical engineering constraints shaped research decisions, including model size, JSON export, RTNeural loading, and audio-thread safety.
+    \item Reflect on the plugin as a research artefact rather than merely a demonstration interface.
+    \item Discuss how implementation gaps, such as sample-rate conversion, reveal important knowledge about real-time deployment requirements.
+\end{itemize}
+
+\section{Plugin Deployment and Real-Time Constraints}
+
+\begin{itemize}
+    \item Discuss the significance of running PyTorch-trained models in a C\texttt{++}/RTNeural plugin without a Python runtime.
+    \item Interpret the role of JUCE in making the artefact usable as AU, VST3, and Standalone builds.
+    \item Discuss audio-thread constraints: no allocation, no file I/O, no locks, and predictable per-block processing.
+    \item Explain why hidden-state continuity across blocks is essential for recurrent audio models.
+    \item Discuss the importance of model switching and bypass smoothing for a usable plugin experience.
+\end{itemize}
+
+\section{Sample-Rate Conversion as a Critical Limitation}
+
+\begin{itemize}
+    \item Explain that the models are trained at 44.1~kHz and therefore assume a specific time scale.
+    \item Discuss why processing a 44.1~kHz-trained recurrent model directly at 48~kHz or 96~kHz can alter the learned behaviour.
+    \item Treat host sample-rate to 44.1~kHz to host sample-rate conversion as a required DSP step for robust deployment.
+    \item If still unimplemented at submission, frame it as a limitation of the current artefact and a priority for future work.
+    \item If implemented before submission, discuss its latency, quality, and test results.
+\end{itemize}
+
+\section{Limitations of the Study}
+
+\begin{itemize}
+    \item The model represents one physical DS-1 unit and cannot be assumed to cover unit-to-unit variation.
+    \item The model represents one knob setting and does not emulate the full parameter space of the pedal.
+    \item The dataset is mono and constrained to the recorded playing material.
+    \item ESR is an objective waveform metric and does not capture every perceptual judgement a guitarist or engineer might make.
+    \item No formal listening study was conducted, so perceptual claims must remain cautious.
+    \item Plugin testing is limited compared with commercial release testing across hosts, operating systems, sample rates, and buffer sizes.
+\end{itemize}
+
+\section{Implications}
+
+\begin{itemize}
+    \item Discuss implications for researchers selecting compact recurrent architectures for virtual analog work.
+    \item Discuss implications for plugin developers deploying neural models under hard real-time constraints.
+    \item Discuss implications for future DS-1 modelling work, especially parameter-conditioned models and broader datasets.
+    \item Conclude the discussion by preparing the final answer to the research question in Chapter 6.
+\end{itemize}

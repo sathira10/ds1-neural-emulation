@@ -1,1 +1,59 @@
 \chapter{Conclusion}
+
+\section{Restatement of the Research Aim}
+
+\begin{itemize}
+    \item Restate the aim: to investigate whether compact recurrent neural networks can emulate the Boss DS-1 for real-time distortion plugin use.
+    \item Restate the architectural comparison: GRU versus LSTM under matched data, training, and deployment conditions.
+    \item Reconnect the work to the title of the dissertation and the practice-based research framing.
+\end{itemize}
+
+\section{Direct Answer to the Research Question}
+
+\begin{itemize}
+    \item Answer whether the models achieved an acceptable objective approximation of the DS-1 according to the final ESR and related metrics.
+    \item Answer which recurrent architecture offered the better accuracy-to-efficiency trade-off.
+    \item State clearly whether this conclusion is based on objective metrics, deployment observations, or both.
+    \item Avoid overstating conclusions beyond the evidence collected.
+\end{itemize}
+
+\section{Summary of Contributions}
+
+\begin{itemize}
+    \item An original matched dry/wet DS-1 recording dataset at a documented fixed knob setting.
+    \item A reproducible Python training workflow using compact recurrent neural models.
+    \item A controlled comparison between LSTM and GRU architectures using the same device, data split, and evaluation framework.
+    \item Exported model weights in a JSON format suitable for C\texttt{++} inference.
+    \item A JUCE/RTNeural plugin artefact that demonstrates the deployment path from trained model to real-time audio software.
+    \item Documentation of practical constraints, including real-time safety and the need for sample-rate conversion around the 44.1~kHz-trained model.
+\end{itemize}
+
+\section{Research Limitations}
+
+\begin{itemize}
+    \item One physical DS-1 unit was used, so the results do not represent every DS-1 unit or hardware revision.
+    \item One knob setting was captured, so the model is not a parameterised emulation of Tone, Distortion, and Level.
+    \item No formal listening study was conducted, so perceptual equivalence remains unproven.
+    \item The plugin should be understood as a research artefact rather than a polished commercial release.
+    \item If the sample-rate conversion path remains incomplete, non-44.1~kHz DAW operation must be treated as an unresolved deployment limitation.
+\end{itemize}
+
+\section{Future Work}
+
+\begin{itemize}
+    \item Train parameter-conditioned models that accept Tone, Distortion, and Level settings as inputs.
+    \item Expand the dataset across multiple knob settings, playing styles, guitars, and gain levels.
+    \item Validate across multiple physical DS-1 units to study unit-to-unit variation.
+    \item Conduct a formal perceptual study using MUSHRA, ABX, or a comparable listening protocol with trained listeners.
+    \item Implement and regression-test host sample-rate to 44.1~kHz to host sample-rate conversion for plugin inference.
+    \item Add automated plugin tests and broader host validation across DAWs, plugin formats, buffer sizes, and sample rates.
+    \item Profile runtime performance more systematically across model sizes and hardware platforms.
+\end{itemize}
+
+\section{Final Reflection}
+
+\begin{itemize}
+    \item Reflect on the value of the project as both a technical artefact and a research process.
+    \item Discuss how the project demonstrates the practical connection between machine learning, digital signal processing, and music technology.
+    \item Close by returning to the central motivation: preserving the expressive qualities of analog distortion in a modern real-time software workflow.
+\end{itemize}

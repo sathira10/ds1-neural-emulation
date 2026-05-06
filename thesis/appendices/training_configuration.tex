@@ -1,1 +1,45 @@
 \chapter{Training Configuration}
+
+\section{Purpose of the Appendix}
+
+\begin{itemize}
+    \item Record the exact training configuration used for the reported GRU and LSTM models.
+    \item Separate reproducibility details from the narrative explanation in Chapter 3.
+    \item Provide a single place to list commands, config files, hyperparameters, and artefact locations.
+\end{itemize}
+
+\section{Software Environment}
+
+\begin{itemize}
+    \item State the Python version and dependency management tool used for training.
+    \item Identify PyTorch, NumPy, SciPy, TensorBoard, and other relevant packages.
+    \item Record whether training was run on CPU, GPU, or Apple Silicon acceleration.
+    \item Include the exact setup command: \texttt{cd model \&\& uv sync}.
+\end{itemize}
+
+\section{Training Command and Configuration Files}
+
+\begin{itemize}
+    \item List the final commands used to train or reload each model.
+    \item Identify the JSON config files under \texttt{model/Configs/}.
+    \item State the output directories under \texttt{model/Results/}.
+    \item Note whether the model was trained from scratch or resumed from an existing checkpoint.
+\end{itemize}
+
+\section{Hyperparameters}
+
+\begin{itemize}
+    \item Report segment length, batch size, maximum epochs, learning rate, optimiser, and weight decay.
+    \item Report recurrent warm-up length and update frequency settings.
+    \item Report validation frequency, early-stopping patience, and learning-rate scheduler behaviour.
+    \item State the loss terms and weights, including ESR and DC loss.
+\end{itemize}
+
+\section{Exported Artefacts}
+
+\begin{itemize}
+    \item List final \texttt{model.json} and \texttt{model\_best.json} files.
+    \item List generated test audio files and \texttt{training\_stats.json}.
+    \item Identify which exported JSON files were copied into \texttt{plugin/Resources/Models/}.
+    \item Record model metadata: unit type, hidden size, number of layers, skip connection, and sample rate.
+\end{itemize}

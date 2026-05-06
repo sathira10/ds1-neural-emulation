@@ -1,1 +1,83 @@
 \chapter{Results}
+
+\section{Purpose of the Results Chapter}
+
+\begin{itemize}
+    \item Present measured outcomes from the training, evaluation, export, and plugin deployment stages.
+    \item Report results without extended interpretation; detailed interpretation belongs in Chapter 5.
+    \item Avoid inventing values: insert final measured ESR, loss, timing, CPU, or latency figures only after they have been confirmed from artefacts or tests.
+\end{itemize}
+
+\section{Dataset and Experimental Artefacts}
+
+\begin{itemize}
+    \item Report the final dataset files used for training, validation, and testing.
+    \item State sample rate, duration, number of segments, and any preprocessing once confirmed.
+    \item Confirm the DS-1 knob setting and signal-chain details by reference to Appendix A.
+    \item Note any exclusions, edits, or rejected takes if applicable.
+\end{itemize}
+
+\section{Training Behaviour}
+
+\begin{itemize}
+    \item Present training and validation loss curves for LSTM and GRU.
+    \item Report convergence behaviour: stability, early stopping point, learning-rate reductions, and best-validation epoch.
+    \item Identify whether either model showed overfitting, underfitting, instability, or unusually slow convergence.
+    \item Refer to Appendix C for full-resolution loss curves.
+\end{itemize}
+
+\section{Objective Test-Set Evaluation}
+
+\begin{itemize}
+    \item Report final ESR for the LSTM model on the held-out test set.
+    \item Report final ESR for the GRU model on the held-out test set.
+    \item Report DC loss or offset-related observations where available.
+    \item Compare final-model and best-validation-model test outputs if both are generated.
+    \item Include waveform or spectrogram examples only after the figures are prepared and labelled.
+\end{itemize}
+
+\section{Architecture and Parameter Comparison}
+
+\begin{itemize}
+    \item Present a table comparing LSTM and GRU architecture settings: input size, output size, hidden size, recurrent layers, skip connection, and dense layer.
+    \item Report parameter counts: 2,617 parameters for the hidden-size-24 LSTM and 1,969 parameters for the hidden-size-24 GRU.
+    \item State that the GRU has 648 fewer parameters under the current matched configuration.
+    \item Explain the numerical difference briefly and factually: LSTM uses four gate groups while GRU uses three.
+\end{itemize}
+
+\section{Exported Model Artefacts}
+
+\begin{itemize}
+    \item Identify the exported JSON files used by the plugin.
+    \item Report model file sizes once confirmed.
+    \item State the plugin validation constraints: \texttt{SimpleRNN}, mono input/output, one recurrent layer, hidden size 24, LSTM or GRU unit type, and valid skip setting.
+    \item Document any model-loading failures or warnings if they appear during testing.
+\end{itemize}
+
+\section{Plugin Runtime Observations}
+
+\begin{itemize}
+    \item Report the plugin formats successfully built and tested, such as AU, VST3, or Standalone.
+    \item Report the tested DAW or host, buffer size, sample rate, and machine configuration.
+    \item Describe observed behaviour for Drive, Level, Bypass, and Model switching.
+    \item Report whether hidden-state reset on model switching avoided audible switching artefacts.
+    \item Record any CPU, latency, or glitch observations only after they are measured.
+\end{itemize}
+
+\section{Sample-Rate Handling Result}
+
+\begin{itemize}
+    \item State clearly whether the 44.1~kHz round-trip resampling path has been implemented by the time results are finalised.
+    \item If implemented, report tests at 44.1~kHz, 48~kHz, and 96~kHz.
+    \item If not implemented, report this as a current limitation of the plugin artefact and avoid claiming sample-rate-independent operation.
+    \item Explain that non-44.1~kHz host sessions require conversion because the models were trained at 44.1~kHz.
+\end{itemize}
+
+\section{Summary of Results}
+
+\begin{itemize}
+    \item Summarise the key measured difference between GRU and LSTM.
+    \item State which architecture appears more efficient under the current measurements.
+    \item State whether accuracy differences are large enough to matter according to the selected objective metrics.
+    \item Transition to Chapter 5, where these findings are interpreted in relation to the research question and literature.
+\end{itemize}

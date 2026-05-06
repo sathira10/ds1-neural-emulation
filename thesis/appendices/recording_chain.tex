@@ -1,1 +1,36 @@
 \chapter{Recording Signal Chain and DS-1 Settings}
+
+\section{Purpose of the Appendix}
+
+\begin{itemize}
+    \item Document the exact hardware and software conditions under which the dataset was captured.
+    \item Provide enough detail for another researcher to understand the provenance of the dry/wet audio pairs.
+    \item Support the methodological claim that GRU and LSTM were compared using the same controlled recording material.
+\end{itemize}
+
+\section{Pedal and Control Settings}
+
+\begin{itemize}
+    \item Identify the physical Boss DS-1 unit used for capture.
+    \item Record the fixed control positions: Tone, Distortion, and Level at 12 o'clock.
+    \item Note that the model represents this specific unit and setting only.
+    \item Include photographs or diagrams of the pedal settings if available.
+\end{itemize}
+
+\section{Signal Chain}
+
+\begin{itemize}
+    \item Describe the guitar or DI source used for the dry signal.
+    \item Document the audio interface, reamp path, pedal input/output routing, and DAW session settings.
+    \item State sample rate, bit depth, buffer size, and file format used during recording.
+    \item Explain how input and target recordings were aligned as paired examples.
+\end{itemize}
+
+\section{Dataset Organisation}
+
+\begin{itemize}
+    \item List the final dataset files in \texttt{model/Data/train}, \texttt{model/Data/val}, and \texttt{model/Data/test}.
+    \item Report durations for each split once confirmed.
+    \item Note any editing, trimming, normalisation, or rejected takes.
+    \item State how the split design supports objective test-set evaluation.
+\end{itemize}

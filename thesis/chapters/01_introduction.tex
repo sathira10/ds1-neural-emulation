@@ -43,16 +43,17 @@ The primary research question guiding this study is:
 
 Five objectives structured the work:
 
-\begin{enumerate} 
-\item Record an original dataset of matched dry/wet audio pairs from a researcher-owned Boss DS-1 unit, capturing a range of guitar playing styles at a fixed, documented knob configuration.
-  \item Train a GRU-32 model and an LSTM-32 model under identical conditions using the recorded dataset, and evaluate both models against objective metrics.
-  \item Build the trained models into a functional real-time audio plugin using a C++ stack, and assess its performance in Ableton Live 12 at a 128-sample buffer.
+\begin{enumerate}
+  \item Record an original dataset of matched dry/wet audio pairs from a researcher-owned Boss DS-1 unit, capturing a range of guitar playing styles at a fixed, documented knob configuration.
+  \item Train matched GRU and LSTM recurrent models under identical conditions using the recorded dataset, and evaluate both models against objective metrics.
+  \item Export the trained models into a functional real-time audio plugin using a \texttt{C++}, JUCE, and RTNeural stack.
+  \item Assess the practical deployment constraints of the plugin, including model loading, audio-thread safety, bypass behaviour, model switching, and the required host sample-rate conversion path.
   \item Situate the findings within the existing literature on virtual analogue modelling, contextualising results against published benchmarks and identifying implications for future work.
 \end{enumerate}
 
 \section{Expected Outcomes}
 
-The literature provided a basis for two expectations entering the experimental phase. Drawing on Wright et al.\ \cite{wright_real-time_2020} and Chowdhury \cite{chowdhury_comparison_2021}, the GRU model was expected to achieve ESR figures within approximately one percentage point of the LSTM model, owing to their structural similarity at hidden size 32. GRU's simpler gating structure, with three gates rather than LSTM's four, was also expected to yield a measurably lower trainable parameter count, as straightforwardly predicted by the architectural mathematics of each cell type. These expectations are grounded in the literature reviewed in Chapter 2 and are addressed critically against the experimental results in Chapter 5.
+The literature provided a basis for two expectations entering the experimental phase. Drawing on Wright et al.\ \cite{wright_real-time_2020} and Chowdhury \cite{chowdhury_comparison_2021}, the GRU model was expected to achieve ESR figures close to those of the LSTM model under matched conditions. GRU's simpler gating structure, with three gates rather than LSTM's four, was also expected to yield a measurably lower trainable parameter count, as straightforwardly predicted by the architectural mathematics of each cell type. These expectations are grounded in the literature reviewed in Chapter 2 and are addressed critically against the experimental results in Chapter 5.
 
 \section{Research Paradigm}
 
@@ -62,11 +63,11 @@ This paradigm is appropriate because the project is constitutive, not merely eva
 
 \section{Significance of the Study}
 
-This study makes three specific contributions. The first is \textbf{experimental}: a direct, controlled comparison between GRU-32 and LSTM-32 on the Boss DS-1, trained on original hardware recordings under matched conditions. Prior work has applied both architectures to audio modelling, but head-to-head comparisons on the DS-1, are not well represented in the existing literature.
+This study makes three specific contributions. The first is \textbf{experimental}: a direct, controlled comparison between compact GRU and LSTM models on the Boss DS-1, trained on original hardware recordings under matched conditions. Prior work has applied both architectures to audio modelling, but head-to-head comparisons on the DS-1, are not well represented in the existing literature.
 
 The second contribution is \textbf{practical}: a deployed, functional plugin as a demonstrable research artefact. The plugin represents an end-to-end pipeline from hardware recording through model training to real-time deployment in a professional DAW environment, producing something a practitioner could actually use.
 
-The third contribution is \textbf{methodological}: the full pipeline from  training to deployment is documented in detail. This documentation is itself a contribution to the open-source virtual analog modelling community.
+The third contribution is \textbf{methodological}: the full pipeline from training to deployment is documented in detail. This documentation is itself a contribution to the open-source virtual analog modelling community.
 
 \section{Scope and Delimitations}
 
@@ -81,4 +82,15 @@ Each of these constraints is a deliberate scope decision. They are acknowledged 
 
 \section{Chapter Structure}
 
-The remainder of this dissertation is organised as follows. \textbf{Chapter 2} presents the literature review, tracing the development of virtual analog modelling from white-box circuit simulation through traditional black-box approaches to data-driven deep learning, and building the case for the specific GRU versus LSTM question this study addresses. \textbf{Chapter 3} describes the methodology: the recording procedure, model architectures, training configuration, evaluation metrics, and the plugin deployment pipeline. \textbf{Chapter 4} presents the results of training and evaluation for both models, alongside the plugin performance data collected in Ableton Live 12. \textbf{Chapter 5} discusses those results against the existing literature, reflects on the practice-based process, and acknowledges the study's limitations in full. \textbf{Chapter 6} concludes by answering the research question directly, restating the scope delimitations, outlining directions for future work, and reflecting on the personal and professional development dimensions of the project.
+The remainder of this dissertation is organised as follows. \textbf{Chapter 2} presents the literature review, tracing the development of virtual analog modelling from white-box circuit simulation through traditional black-box approaches to data-driven deep learning, and building the case for the specific GRU versus LSTM question this study addresses. \textbf{Chapter 3} describes the methodology: the recording procedure, model architectures, training configuration, evaluation metrics, and the plugin deployment pipeline. \textbf{Chapter 4} presents the results of training and evaluation for both models, alongside plugin runtime observations. \textbf{Chapter 5} discusses those results against the existing literature, reflects on the practice-based process, and acknowledges the study's limitations in full. \textbf{Chapter 6} concludes by answering the research question directly, restating the scope delimitations, outlining directions for future work, and reflecting on the personal and professional development dimensions of the project.
+
+\section{Chapter Development Outline}
+
+\begin{itemize}
+    \item Strengthen the background by linking the cultural importance of guitar distortion to the technical problem of reproducing nonlinear analog behaviour in software.
+    \item Ensure the DS-1 is framed as a focused research object rather than as a universal representative of all distortion pedals.
+    \item Keep the research question centred on two linked concerns: objective emulation accuracy and real-time architectural efficiency.
+    \item Align the objectives with the implemented artefact: matched recordings, PyTorch/CoreAudioML training, JSON export, JUCE/RTNeural deployment, and plugin evaluation.
+    \item Preserve scope boundaries throughout the chapter: one pedal, one knob setting, no formal listening study, and no generalisation across all DS-1 units.
+    \item Mention the 44.1~kHz model-rate issue as a deployment constraint that must be handled by sample-rate conversion in the final plugin.
+\end{itemize}
