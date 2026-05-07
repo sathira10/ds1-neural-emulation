@@ -79,8 +79,6 @@ cmake --build build
 
 CMake fetches JUCE 8 and RTNeural via CPM and invokes the WebUI build (`npm install && npm run build`) automatically. Requires `npm` on your PATH.
 
-See [`plugin/AGENTS.md`](plugin/AGENTS.md) for build options and [`plugin/CLAUDE.md`](plugin/CLAUDE.md) for the plugin architecture.
-
 ### Build the thesis
 
 ```bash
