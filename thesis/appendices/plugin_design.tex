@@ -1,1 +1,62 @@
-\chapter{Training Loss Curves}
+\chapter{Plugin Design and Architecture}
+
+This appendix describes the design and architecture of the Boss DS-1 neural emulation plugin, the primary deployed artefact of this research. It covers the choice of development framework, the constraints that govern real-time audio plugin code, the signal processing chain, the machine learning inference strategy, and the user interface. Figure~\ref{fig:plugin_screenshot} shows the plugin loaded in Ableton Live 12.
+
+\section{Development Framework: JUCE}
+
+The plugin was built with JUCE (Jules' Utility Class Extensions), a C\texttt{++} framework that has become the de facto standard for professional audio plugin development~\cite{noauthor_juce-frameworkjuce_2026}. It is used in production by Native Instruments, Arturia, iZotope, Focusrite, Steinberg, and many others, and underpins a large share of the commercial plugin ecosystem.
+
+What JUCE solves is fragmentation. The audio plugin industry does not run on a single standard format. VST3, developed and maintained by Steinberg, is the dominant open format on Windows and macOS. Apple's Audio Units (AU) format is required for full integration with Logic Pro and GarageBand on macOS. Avid's AAX is mandatory for Pro Tools, still the standard DAW in professional post-production and broadcast. Newer formats such as CLAP (CLever Audio Plug-in API) are gaining ground. Without an abstraction layer, supporting all of these means maintaining largely separate codebases for each, because every SDK presents a different API for the same set of operations: receiving audio buffers, exposing parameters, saving and restoring state. Platform fragmentation makes this worse. A VST3 built for Windows needs separate code to run on macOS, and a plugin aimed at embedded Linux hardware such as a Raspberry Pi is yet another compilation target.
+
+JUCE collapses both dimensions of this fragmentation behind a unified \texttt{AudioProcessor} API. From a single codebase the framework produces standards-compliant VST3, AU, AAX, and Standalone targets across Windows, macOS, Linux, iOS, and Android, generating the format-specific wrapper code automatically. For this research the priority was machine learning inference and the comparative evaluation of GRU and LSTM architectures rather than commercial cross-platform release engineering, so the implemented build focuses on the JUCE targets used in this repository: AU, VST3, and Standalone. Chapter~4 reports final runtime testing in Ableton Live~12 and Cubase~12 using the AU and VST3 builds.
+
+\section{Real-Time Constraints}
+
+Audio plugin development imposes a kind of engineering constraint that does not really come up in most other software contexts. The host DAW delivers audio to the plugin in fixed-size blocks, commonly 64, 128, 256, or 512 samples, depending on the session's buffer size setting. At 44.1~kHz with a 128-sample buffer the host issues a new block roughly every 2.9~milliseconds. The plugin has to finish processing that block and return a result before the next one arrives. Miss the deadline and the result is a buffer underrun: an audible click or dropout.
+
+The plugin does not have exclusive use of that 2.9~ms budget. The audio thread also services every other plugin on every other track in the session, the DAW's own internal processing, and any system processes competing for the CPU at the same moment. One computationally expensive plugin can therefore make an entire session unusable, not just for itself but for everything running alongside it. This puts a hard ceiling on per-sample cost with no real equivalent in offline processing.
+
+The same constraint imposes an architectural rule. The audio thread must never perform dynamic memory allocation, acquire a mutex lock, or carry out file I/O. Any of those can stall execution for an indeterminate amount of time while the operating system services the request, producing a latency spike that registers as an audible glitch. A plugin that allocates on the audio thread may work in most situations and then fail unpredictably under load. For this reason every runtime resource, including both neural network models, is allocated and initialised inside the plugin's \texttt{prepareToPlay()} call, which runs before the audio thread becomes active. Nothing is allocated during audio processing.
+
+\section{Signal Chain and Neural Network Inference}
+
+The plugin implements the following signal chain within each audio buffer callback:
+
+\begin{enumerate}
+  \item \textbf{Input gain (Drive).} The incoming audio sample is scaled by a linear gain factor derived from the Drive parameter, which is expressed in decibels and converted to a linear multiplier at parameter update time.
+
+  \item \textbf{Mono wet-path preparation.} The model is trained for mono input and mono output. In stereo plugin configurations, the wet path therefore sums the two input channels to mono before neural inference. The processed mono output is then copied back to the plugin output channels and blended against the dry signal according to the bypass state.
+
+  \item \textbf{Host-to-model sample-rate conversion.} The recurrent models are trained at 44.1~kHz. For host sessions running at any other sample rate, the correct final signal path requires real-time-safe resampling from the host sample rate to 44.1~kHz before model inference. This is not the same as artistic oversampling for alias reduction; it is a time-scale requirement caused by the training sample rate of the model. In the validated deployment reported in this dissertation, operation is limited to 44.1~kHz host sessions.
+
+  \item \textbf{Neural network inference.} The model-rate signal is passed through the active recurrent model, either the hidden-size-24 LSTM or the hidden-size-24 GRU according to the Model parameter, using RTNeural as the inference engine. Both architectures are recurrent and carry an internal hidden state forward across samples. That statefulness is what lets the models capture the memory-dependent, time-varying behaviour of the analog circuit: each output sample is a function not only of the current input but of the signal history encoded in the hidden state. The recurrence has a practical consequence. Samples have to be processed strictly one at a time. The whole buffer cannot be processed in a single parallel operation, as it could be for a purely convolutional architecture. The hidden state is kept across buffer boundaries, so the model's temporal memory is continuous regardless of the host's buffer size setting. When the user switches models, the new model's hidden state is reset to zero to stop residual state from the previous context producing an audible artefact.
+
+  \item \textbf{Model-to-host sample-rate conversion.} When host and model sample rates differ, the processed 44.1~kHz model output must be resampled back to the host sample rate before wet/dry mixing and output. Any future implementation of this path must allocate buffers outside the audio callback, keep resampler state across blocks, reset cleanly, and report any added latency to the host.
+
+  \item \textbf{Output gain (Level).} The signal is scaled by the Level parameter before being written to the output buffer.
+\end{enumerate}
+
+\section{RTNeural and SIMD Acceleration}
+
+Inference itself is handled by RTNeural, a lightweight, header-only C\texttt{++} library written specifically for hard real-time audio systems~\cite{chowdhury_rtneural_2021}. Standard deep learning runtimes such as PyTorch's C\texttt{++} API or TensorFlow's inference library are unsuitable here because they rely on dynamically resizable data structures that trigger memory allocation during common operations. RTNeural avoids that by pre-allocating every required buffer at model load time, with no allocation inside the inference loop.
+
+Even though the recurrence forces samples to be processed one at a time, the internal computations at each time step, the matrix multiplications and element-wise operations that make up the LSTM and GRU forward passes, can still be vectorised across the hidden state dimension. RTNeural takes advantage of this through SIMD (Single Instruction, Multiple Data) intrinsics, which let a single CPU instruction operate on several floating-point values at once. On Apple Silicon this falls back to ARM NEON, which substantially speeds up the per-sample computation compared to a scalar implementation. Chapter~4 reports the observed runtime behaviour of the resulting plugin build and notes that no formal CPU benchmark was completed.
+
+Both models are loaded into memory at plugin initialisation. At runtime the active model is selected by a pointer, and switching simply redirects that pointer and resets the new model's hidden state. No loading happens on the audio thread.
+
+\section{Parameter Management}
+
+Parameters are managed through JUCE's APVTS parameter-state system, which gives a thread-safe way of exposing parameters to the host DAW. APVTS takes care of automation lanes, undo and redo history, and session-state persistence: saving and reopening a session restores the plugin's parameter values, Drive, Level, Model, and Bypass, exactly as they were. Communication between the UI thread and the audio thread happens without locking, which keeps the real-time safety requirement intact.
+
+\section{User Interface}
+
+The interface uses a skeuomorphic aesthetic (Figure~\ref{fig:plugin_screenshot}). Skeuomorphism is the practice of making digital interfaces look like their physical counterparts through realistic textures, shadows, and familiar physical forms. In music production software it is common, and producers tend to prefer it because it lowers the cognitive distance between the software tool and the hardware it represents. A producer who already knows the Boss DS-1's three-knob layout can orient themselves in the plugin immediately, without reading any documentation. Arturia, Native Instruments, and Universal Audio have all built product lines on this principle. The plugin reflects the DS-1's characteristic orange enclosure, uses a photograph of the actual pedal as the left-hand panel, and labels its controls in the style of the hardware. The CHECK indicator LED mirrors the original: lit when the effect is active, dark when the plugin is bypassed.
+
+Unlike JUCE's built-in component library, which exposes a lower-level painting API for drawing UI elements in C\texttt{++}, recent versions of JUCE include a \texttt{WebBrowserComponent} that lets a standard web application live directly inside the plugin window. The interface here is built that way, as a React application compiled with Vite. The benefit is that the UI can be developed with modern web tooling (component architecture, hot module replacement, TypeScript) without any of the problems that would come from pointing the plugin at a remote URL. The compiled web bundle is zipped and baked into the plugin binary via JUCE's \texttt{juce\_add\_binary\_data} CMake utility, so the plugin ships as a single self-contained binary with no external runtime dependencies. At startup the bundle is extracted to a temporary directory and the \texttt{WebBrowserComponent} is pointed at it. Bidirectional communication between the React interface and the \texttt{AudioProcessorValueTreeState} parameters is handled by JUCE's WebView relay API, which keeps the UI controls and the APVTS in sync in both directions.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/plugin_ui.png}
+  \caption[Plugin interface in Ableton Live]{The Boss DS-1 neural emulation plugin UI}
+  \label{fig:plugin_screenshot}
+\end{figure}

@@ -1,84 +1,76 @@
 \chapter{Introduction}
+\label{chap:introduction}
 
-\section{Background and Motivation}
+\section{Background}
+\label{sec:introduction-background}
 
-Distortion has always stood at the centre of modern guitar sound. What began as a technical flaw became one of the most expressive textures in popular music. Early amplifiers were never meant to distort. They were built to make guitars louder. Yet musicians found that when these circuits were pushed too hard, the sound changed in exciting ways. Notes grew thicker, richer, and full of energy.
+Guitar distortion occupies an important position in popular music because it is not merely a defect or excess of amplification, but a recognisable creative sound. Distortion pedals shape harmonic content, sustain, dynamic response, and playing feel, making them central to many electric guitar styles. The appeal of these devices is closely tied to the nonlinear behaviour of analog circuits: the output does not scale proportionally with the input, and the resulting clipping, compression, and harmonic generation depend on both signal level and recent signal history.
 
-In 1951, Jackie Brenston's \textit{Rocket 88} introduced this tone to a wide audience. The amplifier used for that session had a damaged speaker cone, and the broken sound gave the record its wild character. Within a few years, other players started chasing that same effect. Link Wray stabbed holes in his speakers for \textit{Rumble}. Jimi Hendrix pushed tube amplifiers far past their limits. These experiments showed that distortion could express emotion in a way that clean tones could not.
+This cultural importance creates a technical problem for digital audio systems. If guitarists value distortion pedals partly because of their nonlinear and dynamic analog behaviour, then a software emulation must do more than apply a simple static transfer curve. Traditional digital approaches such as waveshaping can reproduce some clipping characteristics, but they may not fully capture memory-dependent behaviour. Conversely, detailed circuit simulation can be accurate, but may be too computationally demanding for low-latency plugin use. This project therefore investigates whether compact recurrent neural networks can learn the input-output behaviour of a physical distortion pedal accurately enough for real-time deployment.
 
-Manufacturers took notice. The Gibson Maestro FZ-1 Fuzz-Tone, released in 1962, turned this accident into a product. From then on, guitar pedals became laboratories for new sounds. Among them, the \textbf{Boss DS-1}, introduced in 1978, stands as a milestone. It offered a hard, aggressive distortion built around a transistor booster and a hard-clipping operational amplifier stage, shaping decades of rock and metal music. It is one of the most widely sold guitar pedals ever made, and its circuit has been studied in depth in the academic literature \cite{yeh_simplified_2007}.
+The focus of this dissertation is the neural emulation of a Boss DS-1 distortion pedal. The DS-1 is a useful target because it is a well-known and widely used distortion pedal with a recognisable sound, while also being specific enough to support a controlled study. In this project, the DS-1 is treated as a focused research object rather than as a universal representative of all distortion pedals. The aim is not to produce a general theory of distortion emulation, or a complete model of every DS-1 unit and setting. Instead, the study examines one physical DS-1 pedal at one documented knob configuration, using matched dry and processed recordings as the basis for supervised neural modelling.
 
-Analogue circuits like the DS-1 behave in complex ways. When a signal becomes too strong for the transistors or diodes inside, the circuit begins to add new frequencies. These are called harmonics. Even-numbered harmonics tend to sound smooth and musical. Odd-numbered harmonics add bite and grit. The balance between these, along with the way the circuit responds dynamically to changes in level, gives each device its own sonic personality \cite{noauthor_electrosmash_nodate}. These qualities are what musicians describe as warmth or character.
+\section{Problem Statement}
+\label{sec:introduction-problem}
 
-Despite this cultural longevity, analogue hardware presents real practical problems. Pedals are expensive, subject to wear, and difficult to integrate cleanly into modern digital audio workstation (DAW) workflows. A single unit can behave differently from another of the same model. There is no guarantee that a well-worn DS-1 from 1983 sounds the same as it did when new. For recording and production environments, the demand for faithful, lightweight digital emulations has grown steadily as digital workflows have become the norm. This demand is the starting point for the research presented here.
+The central problem addressed by this project is the difficulty of reproducing nonlinear analog audio behaviour in real-time software. A distortion pedal does not simply apply a fixed gain or equalisation curve. Its response changes with input level, clipping behaviour, circuit dynamics, and the recent history of the signal. These properties make the device musically expressive, but they also make it harder to emulate accurately using simple digital signal processing techniques.
 
-The late twentieth century saw the arrival of digital recording. Engineers could store and reproduce sound without noise or degradation for the first time. The goal was to remove the unwanted artefacts of analogue systems: tape hiss, wow and flutter, and circuit noise. For a while, that clarity was celebrated. But soon many listeners began to feel that something was missing. Recordings were clean but often cold. The artefacts of analogue systems, once considered flaws, had added character. Tape compression, tube saturation, and circuit noise contributed to what listeners called warmth. Engineers and musicians began trying to bring that character back. Vintage hardware became valuable again. Companies began producing digital emulations of analogue gear, and distortion pedals were among the most imitated devices.
+Static waveshaping can approximate some aspects of clipping, but it does not directly model memory-dependent behaviour. Linear convolution can capture frequency response, but it is not designed to reproduce nonlinear distortion. White-box circuit modelling can represent analog components in detail, but this approach may be too costly for practical low-latency use in a digital audio workstation. A black-box neural modelling approach offers an alternative: instead of explicitly simulating every circuit component, a model is trained to learn the relationship between an input recording and the corresponding output of the hardware device.
 
-\section{The Emulation Challenge}
+Recurrent neural networks are particularly relevant to this problem because they process audio as a sequence and maintain an internal state. This allows the model output at a given sample to depend not only on the current input sample, but also on previous samples. For this reason, recurrent architectures such as gated recurrent units (GRUs) and long short-term memory networks (LSTMs) are suitable candidates for modelling nonlinear, memory-dependent audio devices.
 
-Digital emulation of analogue distortion is harder to implement than it appears. The core difficulty is nonlinearity. A linear system produces outputs that scale predictably with inputs. Distortion circuits do not. When a signal drives a transistor or diode past its linear operating region, the output waveform clips. New harmonic frequencies appear that were not present in the input. The balance of even and odd harmonics, the sharpness of the clipping, and the way the circuit responds to different input levels all contribute to the character of the device.
-
-The DS-1 adds further complexity through its two-stage circuit design. A transistor-based preamp amplifies and softly clips the signal first, before it reaches an operational amplifier stage with hard diode clipping \cite{yeh_simplified_2007}. A tone-shaping network follows. Each stage interacts with the others, and the whole system exhibits memory effects: capacitors store energy between samples, meaning the output at any moment depends not just on the current input but on what came before it.
-
-Standard digital signal processing techniques assume the opposite. They treat systems as linear and memoryless. Static wave-shaping can approximate the general shape of clipping but ignores the dynamic, time-varying nature of the real circuit. Convolution captures a device's linear frequency response but not its nonlinearity. White-box approaches, which simulate every circuit component in mathematical equations, can be accurate, but they are computationally expensive to the point of being impractical for real-time use \cite{yeh_simplified_2007}. The gap between what these traditional methods offer and what a musician needs, namely a responsive, low-latency, realistic emulation, is the problem this research addresses.
-
-\section{The Deep Learning Paradigm}
-
-Deep learning opened a new path. Instead of describing a circuit from its schematic, a neural network can learn how it behaves by observing examples. Given a set of matched recordings, with a clean guitar signal alongside its processed counterpart from the real device, a network trained on those pairs can learn to approximate the device's input-output relationship. No circuit schematic is required. No equations need to be derived.
-
-This data-driven approach became practically viable as three things came together: accessible cloud compute, large datasets of paired audio recordings, and open-source tools that lowered the barrier to entry. Projects such as \textbf{GuitarLSTM} \cite{GuitarML_GuitarLSTM} and \textbf{SmartGuitarAmp} \cite{GuitarML_SmartGuitarAmp} provided end-to-end pipelines for training and deploying neural audio models, making research of this kind feasible without specialist hardware or infrastructure.
-
-Among neural architectures, \textbf{recurrent neural networks (RNNs)} proved particularly well suited to audio modelling. Distortion is an inherently stateful process, so what happened a few milliseconds ago affects what happens now. Gated recurrent architectures were designed to model exactly this kind of temporal dependency. The \textbf{Long Short-Term Memory (LSTM)} unit, introduced by Hochreiter and Schmidhuber \cite{hochreiter_long_1997}, uses four gating operations to regulate the flow of information across time. The \textbf{Gated Recurrent Unit (GRU)}, proposed by Cho et al. (2014) \cite{cho_learning_2014}, achieves similar temporal modelling with three gates and a smaller number of parameters. Both have been applied successfully to virtual analog modelling \cite{wright_real-time_2020, chowdhury_comparison_2021, cassidy_perceptual_2023}. Yet direct, controlled comparisons between them on the same hardware under matched training conditions remain limited in the published literature. That gap is what this study addresses.
+However, emulation accuracy alone is not sufficient for this project. A useful audio plugin must also run in real time, with low latency and stable performance inside a host environment. This creates a second technical concern: the chosen architecture must be compact and efficient enough for real-time C++ inference. The project therefore treats neural emulation as both an accuracy problem and a deployment problem.
 
 \section{Research Question}
+\label{sec:introduction-research-question}
 
-The primary research question guiding this study is:
+This dissertation is guided by the following research question:
+
 \begin{quote}
-\textbf{Can a compact deep learning model accurately emulate the nonlinear response of the Boss DS-1 distortion pedal in real time, and which recurrent architecture, GRU or LSTM, provides the better balance of perceptual accuracy and computational efficiency?}
+  How accurately can compact recurrent neural network architectures emulate the nonlinear response of a physical Boss DS-1 distortion pedal, and how suitable are these architectures for efficient real-time deployment in an audio plugin?
 \end{quote}
 
-\textit{Accurately} is defined in terms of the \textbf{Error-to-Signal Ratio (ESR)}, a quantitative metric computed on a held-out test set that measures the ratio of prediction error energy to target signal energy. A lower ESR indicates a closer match to the real device. \textit{Real time} refers to deployment as an audio plugin, where the model must process audio fast enough to avoid perceptible latency during live playback. \textit{Better balance} refers to the trade-off between ESR, number of trainable parameters, and per-sample inference time, rather than any single criterion in isolation.
+This question combines two linked concerns. The first is objective emulation accuracy, evaluated by comparing neural model outputs against recorded pedal outputs. The second is architectural efficiency, considered through the comparison of recurrent model types and their suitability for real-time inference inside a JUCE plugin. The comparison between GRU and LSTM models is therefore not only a comparison of prediction error, but also a comparison of practical deployment suitability.
 
-\section{Research Objectives}
+\section{Aim and Objectives}
+\label{sec:introduction-aim-objectives}
 
-Five objectives structured the work:
+The aim of this project is to design, train, export, and deploy compact recurrent neural network models for the real-time emulation of a Boss DS-1 distortion pedal. The project is practice-based: the software artefact is not separate from the research, but is the main means through which the research question is tested.
 
-\begin{enumerate} 
-\item Record an original dataset of matched dry/wet audio pairs from a researcher-owned Boss DS-1 unit, capturing a range of guitar playing styles at a fixed, documented knob configuration.
-  \item Train a GRU-32 model and an LSTM-32 model under identical conditions using the recorded dataset, and evaluate both models against objective metrics.
-  \item Build the trained models into a functional real-time audio plugin using a C++ stack, and assess its performance in Ableton Live 12 at a 128-sample buffer.
-  \item Situate the findings within the existing literature on virtual analogue modelling, contextualising results against published benchmarks and identifying implications for future work.
+The objectives of the project are:
+
+\begin{enumerate}
+
+  \item To train compact recurrent neural network models with a PyTorch pipeline based on the CoreAudioML workflow and compare GRU and LSTM architectures under matched conditions.
+
+  \item To evaluate model accuracy using objective error measures based on the difference between predicted outputs and recorded pedal outputs.
+
+  \item To export trained model weights to a format suitable for deployment and integrating the exported models into a JUCE audio plugin using RTNeural for real-time C++ inference.
+
+  \item To evaluate the resulting plugin artefact in terms of practical real-time operation, model selection, and architectural efficiency.
 \end{enumerate}
 
-\section{Expected Outcomes}
+Together, these objectives position the dissertation as both an audio engineering investigation and a practice-based set of software artefacts. The research is not only concerned with whether a neural model can reduce waveform error, but also with whether the trained model can survive the practical transition from offline Python training to real-time plugin deployment.
 
-The literature provided a basis for two expectations entering the experimental phase. Drawing on Wright et al.\ \cite{wright_real-time_2020} and Chowdhury \cite{chowdhury_comparison_2021}, the GRU model was expected to achieve ESR figures within approximately one percentage point of the LSTM model, owing to their structural similarity at hidden size 32. GRU's simpler gating structure, with three gates rather than LSTM's four, was also expected to yield a measurably lower trainable parameter count, as straightforwardly predicted by the architectural mathematics of each cell type. These expectations are grounded in the literature reviewed in Chapter 2 and are addressed critically against the experimental results in Chapter 5.
+\section{Implemented Artefacts}
+\label{sec:introduction-implemented-artefacts}
 
-\section{Research Paradigm}
+The implemented system follows an end-to-end pipeline from hardware capture to plugin deployment. First, dry guitar recordings are paired with processed recordings from the Boss DS-1. These matched recordings are divided into training, validation, and test material. The training process is carried out in Python using PyTorch and a CoreAudioML-style model pipeline. The recurrent models are trained as black-box emulators that predict the pedal output from the dry input signal.
 
-This project is situated within a \textbf{practice-based research} paradigm. Candy and Edmonds \cite{candy_practice-based_2018} define practice-based research as inquiry in which the research artefacts themselves, rather than conclusions derived from observing them externally, are the primary contribution. In this study, the primary artefacts are the trained models, the original DS-1 recordings, the weight export pipeline, and the deployed plugin. The related concept of \textbf{practice-enabled knowledge}, developed by Batty and Zalipour \cite{batty_research_2024}, is also relevant here. This refers to knowledge that can only be generated through the act of making: insights that emerge from building and encountering real constraints, not from reading about them in advance. Several findings in this study arose through practice and could not have been anticipated from the published literature alone.
+The active model architecture is a compact recurrent model with a single recurrent layer followed by a dense output layer. Both the GRU and LSTM versions use a hidden size of 24, with mono input and mono output. This hidden size is used because it matches the implemented plugin model format and supports real-time deployment through the C++ inference path. The trained model weights are exported as JSON files, allowing the deployment stage to avoid any dependency on Python or PyTorch at runtime.
 
-This paradigm is appropriate because the project is constitutive, not merely evaluative. The plugin and trained models would not exist without the research process, and the research process produced knowledge that only the act of building them could reveal.
+The exported models are embedded into a JUCE plugin and loaded into RTNeural for real-time inference. This means the project tests the complete practical chain: recording a hardware device, training neural models, serialising the trained weights, loading them in a C++ plugin, and evaluating whether the resulting system can operate in a real-time audio environment. Taken together, the dataset, trained models, export pipeline, and plugin function as the project's research artefacts, with the plugin serving as the main deployment artefact and demonstration of the method.
 
-\section{Significance of the Study}
+\section{Scope and Limitations}
+\label{sec:introduction-scope-limitations}
 
-This study makes three specific contributions. The first is \textbf{experimental}: a direct, controlled comparison between GRU-32 and LSTM-32 on the Boss DS-1, trained on original hardware recordings under matched conditions. Prior work has applied both architectures to audio modelling, but head-to-head comparisons on the DS-1, are not well represented in the existing literature.
+The scope of this study is deliberately narrow. The project models one physical Boss DS-1 pedal, recorded at one fixed knob setting, with Tone, Distortion, and Level held constant. The resulting models should therefore be understood as emulations of that specific captured condition rather than parameterised models of the full pedal. The study does not attempt to generalise across all DS-1 units, all hardware revisions, or all possible control settings.
 
-The second contribution is \textbf{practical}: a deployed, functional plugin as a demonstrable research artefact. The plugin represents an end-to-end pipeline from hardware recording through model training to real-time deployment in a professional DAW environment, producing something a practitioner could actually use.
+The evaluation is also limited to objective comparison and plugin-level technical assessment. No formal listening study, ABX test, or MUSHRA-style perceptual evaluation is included. As a result, objective error metrics may indicate how closely the neural output matches the recorded target waveform, but they should not be treated as proof of perceptual indistinguishability.
 
-The third contribution is \textbf{methodological}: the full pipeline from  training to deployment is documented in detail. This documentation is itself a contribution to the open-source virtual analog modelling community.
+The project also does not claim to produce a commercial-ready distortion plugin. The plugin is used as a real-time research deployment artefact for testing the trained GRU and LSTM models. Practical concerns such as sample-rate handling, model loading, bypass behaviour, and real-time inference are relevant to the evaluation, but the dissertation remains focused on the research question: whether compact recurrent architectures can emulate the captured DS-1 response accurately and efficiently enough for real-time use.
 
-\section{Scope and Delimitations}
+\section{Dissertation Structure}
+\label{sec:introduction-structure}
 
-The scope of this study is deliberately bounded. The DS-1 was recorded at a single knob configuration, with tone, distortion, and level all set to \textbf{12 o'clock} (mid point), and both models were trained on recordings from that one setting only. The trained models do not generalise to other knob positions. Parameter conditioning, in which knob values are supplied as additional inputs to the network, is identified as the most natural extension of this work \cite{steinmetz_efficient_2022}.
-
-No formal listening study with recruited participants was conducted. ESR provides an objective measure of prediction accuracy, but it is not a perceptual metric. A MUSHRA-protocol study with trained listeners \cite{ITU_BS1534_3}, would be required to make strong claims about perceptual indistinguishability. This is identified as the most important direction for future work.
-
-
-Finally, a single physical DS-1 unit was used throughout all recordings. Unit-to-unit variance in analog circuits is a known phenomenon \cite{yeh_simplified_2007}, and the trained models reflect the behaviour of this specific unit. Generalisation to other DS-1 units remains an open question.
-
-Each of these constraints is a deliberate scope decision. They are acknowledged as limitations and addressed directly in Chapter 5.
-
-\section{Chapter Structure}
-
-The remainder of this dissertation is organised as follows. \textbf{Chapter 2} presents the literature review, tracing the development of virtual analog modelling from white-box circuit simulation through traditional black-box approaches to data-driven deep learning, and building the case for the specific GRU versus LSTM question this study addresses. \textbf{Chapter 3} describes the methodology: the recording procedure, model architectures, training configuration, evaluation metrics, and the plugin deployment pipeline. \textbf{Chapter 4} presents the results of training and evaluation for both models, alongside the plugin performance data collected in Ableton Live 12. \textbf{Chapter 5} discusses those results against the existing literature, reflects on the practice-based process, and acknowledges the study's limitations in full. \textbf{Chapter 6} concludes by answering the research question directly, restating the scope delimitations, outlining directions for future work, and reflecting on the personal and professional development dimensions of the project.
+\textbf{Chapter~\ref{chap:introduction}} introduces the cultural and technical motivation for neural distortion emulation, defines the research question, and sets the scope of the project. \textbf{Chapter~2} reviews relevant literature on analog distortion, virtual analog modelling, black-box audio modelling, and recurrent neural networks for nonlinear audio systems. \textbf{Chapter~3} describes the methodology, including the matched recording process, model training pipeline, evaluation method, JSON export, and plugin integration. \textbf{Chapter~4} presents the measured results, including model accuracy, exported artefacts, and plugin observations. \textbf{Chapter~5} discusses the implications of the results, including the trade-off between GRU and LSTM approaches and the limitations of objective error metrics. \textbf{Chapter~6} concludes the dissertation by answering the research question, summarising the project contribution, and identifying future work.

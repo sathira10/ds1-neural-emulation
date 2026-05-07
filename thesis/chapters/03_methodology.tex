@@ -1,1 +1,144 @@
 \chapter{Methodology}
+\label{chap:methodology}
+
+\section{Methodological Overview}
+\label{sec:methodological-overview}
+
+This project uses a practice-based research methodology in which producing technical artefacts is itself part of the research process. Rather than evaluating an existing tool, it designs and documents an end-to-end neural emulation workflow for a physical Boss DS-1 distortion pedal. The core artefacts (matched dry and processed recordings, trained recurrent network models, exported weight files, and the JUCE/RTNeural plugin) together span the distance from hardware capture to real-time DAW deployment.
+
+The path through the methodology is linear. Audio material is recorded as paired dry-input and DS-1-processed examples, organised into training, validation, and test splits, and used to train compact recurrent neural networks in Python. The trained weights are then exported to JSON and loaded into a C++ audio plugin where RTNeural handles sample-by-sample inference.
+
+Two recurrent architectures, the long short-term memory network (LSTM) and the gated recurrent unit (GRU), are trained and deployed under matched conditions. The comparison does not aim to establish which architecture is generally superior; it examines their relative suitability for this specific emulation task. Accuracy, parameter count, export compatibility, and real-time deployment behaviour are all considered, because the research question is as much a practical audio engineering problem as it is a modelling one.
+
+\section{Research Artefacts and Repository}
+\label{sec:research-artefacts-repository}
+
+The implementation artefacts for this project are collected in an accompanying software repository, which is itself part of the practice-based output: it documents the complete path from DS-1 recording to real-time plugin deployment, not just the final result.
+
+The repository is available at:
+\begin{quote}
+  \href{https://github.com/sathira10/ds1-neural-emulation/releases/tag/thesis-submitted}{\texttt{https://github.com/sathira10/ds1-neural-emulation}}
+\end{quote}
+
+The repository version used for this submission is identified by the Git tag \texttt{thesis-submitted}, which marks the exact state submitted for examination. If the repository continues to evolve afterward, the tag makes clear which artefact was examined.
+
+The matched recording dataset is the starting point: dry guitar recordings alongside the corresponding DS-1-processed captures, paired sample-for-sample so that the modelling task can be treated as supervised learning. The Python training pipeline under \texttt{model/} takes this dataset and handles everything from audio loading and recurrent model definition to loss computation, validation, checkpointing, and JSON export.
+
+Those exported JSON files are where the two halves of the workflow connect. Each file carries architecture metadata alongside a \texttt{state\_dict} of the trained weights, giving the C++ plugin enough information to reconstruct the network without depending on Python or PyTorch at runtime. The plugin reads the JSON, validates it against its supported architectures, and passes the weights directly to RTNeural.
+
+The JUCE/RTNeural plugin provides the deployment context: a real-time audio processor with Drive, Level, Model, and Bypass controls, with both LSTM and GRU models embedded as compiled resources. It is the artefact that answers whether the trained networks can actually run in a DAW callback, as opposed to offline.
+
+Finally, this dissertation. The code and weights do not communicate what was controlled, what was measured, or where the implementation's boundaries lie; the written component provides that context.
+
+\begin{table}[h]
+  \centering
+  \caption{Repository locations of key methodological artefacts}
+  \label{tab:repository-artefacts}
+  \begin{tabular}{p{0.34\linewidth} p{0.56\linewidth}}
+    \hline
+    \textbf{Repository path} & \textbf{Role in the methodology} \\
+    \hline
+    \texttt{thesis/} & LaTeX dissertation source files. \\
+    \texttt{model/} & Python training pipeline, dataset folders, model configurations, and results. \\
+    \texttt{model/Data/train} & Training audio used for model weight optimisation. \\
+    \texttt{model/Data/val} & Validation audio used for monitoring generalisation during training. \\
+    \texttt{model/Data/test} & Held-out test audio used for final objective evaluation. \\
+    \texttt{model/Configs/} & JSON configuration files defining training settings. \\
+    \texttt{model/Results/} & Exported models, checkpoints, generated audio, and training statistics. \\
+    \texttt{plugin/} & JUCE/RTNeural plugin implementation. \\
+    \texttt{plugin/Resources/Models/} & Exported LSTM and GRU JSON model files embedded or loaded by the plugin. \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\section{Dataset Design and Recording Scope}
+\label{sec:dataset-design-recording-scope}
+
+The dataset was designed to support a controlled comparison between recurrent architectures. A single physical Boss DS-1 was used throughout, with Tone, Distortion, and Level fixed at 12 o'clock, so both models train against the same captured response.
+
+The source material covered both electric guitar and bass guitar, including single notes, chords, palm-muted attacks, sustained notes, and variation in picking dynamics. Dry and wet recordings were captured in aligned pairs: the dry signal serves as the network input, the DS-1-processed recording as the prediction target. Because the model receives no circuit description, it learns the dry-to-wet relationship purely from examples, which is the defining feature of black-box modelling.
+
+Three splits are used: \texttt{model/Data/train} for weight updates, \texttt{model/Data/val} for monitoring generalisation and controlling the learning-rate schedule, and \texttt{model/Data/test}, which is held back entirely for the final objective evaluation.
+
+The design deliberately narrows the scope. One pedal, one knob setting. The resulting models should be read as emulations of that specific recorded condition; they make no claim about the DS-1 control range, unit-to-unit hardware variation, or playing styles not represented in the dataset. That constraint is what allows the LSTM and GRU comparison to be made under matched conditions.
+
+\section{Training Pipeline}
+\label{sec:training-pipeline}
+
+The main training entry point is \texttt{model/script.py}. It loads configuration values from JSON files in \texttt{model/Configs/}, reads the matched audio pairs, constructs the selected recurrent model, trains it, monitors validation performance, and writes output artefacts to the results directory. All training settings live in the config files, so experiments are reproducible without manual notebook runs.
+
+Audio is segmented into fixed-length windows of 22,050 samples (0.5 seconds at 44.1 kHz) for mini-batch training. Each window contains aligned input and target audio, and is long enough to give the recurrent model meaningful temporal context for learning short-term memory-dependent behaviour.
+
+A warm-up strategy addresses the hidden-state initialisation problem. At the start of each segment, an initial portion of the sequence runs through the model without contributing to the loss calculation. Without this, early-segment gradients would partly reflect artificial cold-start state rather than actual emulation error; the warm-up gives the recurrent state a chance to settle before optimisation begins.
+
+Training uses the Adam optimiser with a learning-rate scheduler that reduces the rate when validation improvement stagnates, and early stopping that halts training once patience is exhausted. TensorBoard logging records training and validation metrics throughout.
+
+Outputs are written under \texttt{model/Results/}: exported model JSON files, best-validation checkpoints, generated test audio, and training statistics. The exported JSON models are what eventually move into the plugin's resource directory for C++ inference.
+
+\section{Model Architecture}
+\label{sec:model-architecture}
+
+The active architecture is a compact \texttt{SimpleRNN} sequence model. A mono input sequence passes through one recurrent layer, then through a dense linear output layer to produce the predicted target. An optional skip connection routes the input directly to the output stage, letting the model focus on the nonlinear residual rather than reconstructing the full signal from scratch.
+
+The recurrent layer is either an LSTM or a GRU, the only structural difference between the two experimental variants. Everything else (input size, output size, layer count, hidden size, skip connection state) is held constant so that differences in training behaviour, parameter count, and deployment suitability are attributable to the cell type alone. In both cases the model operates as a black-box emulator rather than a physically interpretable circuit simulation.
+
+The plugin-compatible configuration has input size 1, output size 1, one recurrent layer, hidden size 24, and skip connection enabled. Keeping the model small is a deliberate choice: it supports real-time deployment without sacrificing the recurrent state needed to model temporal behaviour.
+
+Causality is a hard requirement for this use case. At each time step the model depends only on the current input sample and its own prior hidden state, with no lookahead. A real-time audio plugin has no access to future samples, so the recurrent state propagates across the sample stream while inference stays strictly sample-by-sample.
+
+\section{Losses and Evaluation Metrics}
+\label{sec:losses-evaluation-metrics}
+
+The main objective loss is Error-to-Signal Ratio (ESR), which measures the energy of the prediction error relative to the energy of the target signal. Lower ESR means the predicted waveform tracks the recorded DS-1 output more closely in an energy-normalised sense.
+
+DC loss is a supplementary term that penalises low-frequency offset between the model output and the target. A model could produce a waveform with broadly the right shape while carrying an unwanted DC bias, which is problematic both for technical audio quality and for downstream signal chain behaviour.
+
+Final objective evaluation is carried out on the held-out test set. Neither the training split nor the validation split is an appropriate measure of generalisation: the training set was used for weight updates and the validation set guided model selection, so the test set is the only split the model never influenced.
+
+Parameter count is reported alongside the waveform metrics as an efficiency indicator. The LSTM model contains 2,617 parameters; the GRU 1,969, because the GRU cell has one fewer gate group. Parameter count is not a direct measure of CPU cost, but at this scale it gives a reasonable sense of relative deployment weight.
+
+Both ESR and DC loss are waveform-level metrics and do not substitute for perceptual evaluation. Lower ESR does not guarantee that a model is indistinguishable from the hardware pedal, and some waveform differences that register as error may be musically inaudible. The evaluation here is objective and technical; no formal listening study was conducted.
+
+\section{Model Export and Validation}
+\label{sec:model-export-validation}
+
+Trained models are exported in a CoreAudioML-style JSON format. Each file holds architecture metadata alongside a \texttt{state\_dict} of the trained weights, keeping the structural description and the learned values together so the plugin can verify compatibility before attempting inference.
+
+The metadata fields are not incidental: model class, recurrent unit type, hidden size, input size, output size, layer count, skip connection state, and sample rate. These values define whether the exported model can be loaded into the plugin's statically typed inference path. A mismatch on any of them could produce incorrect inference, a failed load, or unstable runtime behaviour.
+
+After training, selected exports are copied into \texttt{plugin/Resources/Models/} and embedded as binary resources during compilation. The deployed plugin carries both LSTM and GRU weights internally and does not need to locate external files at runtime.
+
+Before loading, the plugin validates the JSON against a restricted set of compatible configurations: mono \texttt{SimpleRNN}, one recurrent layer, hidden size 24, supported unit type, valid skip connection state. Models that do not match are rejected outright, keeping the boundary between training artefact and deployment artefact explicit.
+
+\section{Plugin Deployment Method}
+\label{sec:plugin-deployment-method}
+
+The deployment stack is C++23, JUCE, RTNeural, CMake, and a React/Vite WebUI. JUCE handles the audio plugin framework and host integration; RTNeural provides the C++ inference path for the recurrent models; CMake manages the build and resource embedding. The React/Vite WebUI is the graphical control surface.
+
+Four parameters are exposed to the user: Drive, Level, Model, and Bypass. Drive applies gain before neural processing; Level scales the output afterward. Model switches between the embedded LSTM and GRU. Bypass crossfades between processed and dry rather than switching abruptly.
+
+In the audio callback, stereo input is summed to mono, Drive gain is applied, the active recurrent model runs sample by sample, bypass crossfading is applied, and the result is scaled by Level before being returned to the plugin output channels. The mono inference path matches the nature of the trained model, while still functioning in a stereo host context.
+
+Drive, Level, and Bypass parameters are smoothed to suppress clicks during parameter changes. On model switching, the incoming model's hidden state is reset to avoid artefacts from stale recurrent context.
+
+\section{Sample-Rate Handling Requirement}
+\label{sec:sample-rate-handling-requirement}
+
+The neural models are trained at 44.1 kHz and must run at 44.1 kHz. Recurrent models learn sample-to-sample relationships at a specific rate; running the same weights at a different host rate shifts the effective time scale of the learned response.
+
+For any DAW session not running at 44.1 kHz, the wet-path signal needs to be converted down to 44.1 kHz before it reaches the recurrent model, then converted back to the host rate before being mixed into the plugin output. Without that wrapping step, the model operates at the wrong temporal rate.
+
+Within this project, sample-rate conversion is a known required step, not a completed one. Runtime validation is limited to 44.1~kHz host sessions, where no conversion is needed.
+
+Implementing this correctly in a real-time callback is non-trivial. The resampler must avoid audio-thread allocation, maintain persistent state across processing blocks, and reset cleanly during \texttt{prepareToPlay()} and model or transport changes. If latency is introduced, it must be reported to the host.
+
+\section{Methodological Limitations}
+\label{sec:methodological-limitations}
+
+Only one physical DS-1 unit is modelled here. Analog pedals vary due to component tolerances, age, and manufacturing differences, so the trained networks represent the captured behaviour of this specific pedal rather than the DS-1 as a class.
+
+Related to this: only one knob setting is captured, with Tone, Distortion, and Level fixed at 12 o'clock. The Drive and Level parameters in the plugin offer gain control around the model, but they do not make the network a general model of the pedal's physical controls.
+
+The objective metrics (ESR and DC loss) measure waveform-level agreement, not perceptual indistinguishability. Lower ESR is evidence of better technical fit, but some audible differences may not register in waveform error, and some waveform error may be musically inaudible. Stronger perceptual claims would require ABX or MUSHRA-style listening tests with guitarists or engineers; that is left to future work.
+
+Plugin testing here is artefact validation, not commercial quality assurance. The plugin demonstrates the deployment path from trained model to real-time processor but has not been tested exhaustively across DAWs, operating systems, sample rates, and buffer sizes.

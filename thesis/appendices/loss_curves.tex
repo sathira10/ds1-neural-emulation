@@ -1,0 +1,75 @@
+\chapter{Training Loss Curves}
+\label{app:loss-curves}
+
+This appendix collects the full-resolution training and evaluation figures referenced in Chapter~4. They live here rather than in the main chapter so that Chapter~4 stays readable while the detailed visual evidence behind the model comparison remains available.
+
+Two things motivated putting them here. The plots document the optimisation behaviour that the summary statistics in Section~4.2 are built from, and they also offer additional qualitative examples from the held-out test material at a scale the main chapter cannot accommodate.
+
+\section{Per-Model Training Curves}
+
+Figures~\ref{fig:appendix-lstm-loss-curve} and~\ref{fig:appendix-gru-loss-curve} separate the two training runs into full-page views. Seen on their own, the curves make it easier to follow the stability of the validation trajectory, judge where improvement begins to slow, and see how long training continued past the best checkpoint before early stopping cut it off.
+
+The LSTM curve runs noticeably longer, with gradual validation improvement still appearing into the later stages of training. That is consistent with the lower best-validation loss reported in Table~4.2. The GRU curve flattens sooner and reaches its best checkpoint earlier, which lines up with the reading in Chapter~4: the GRU converges faster but settles at a less favourable validation level under the matched training configuration.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_c_1_lstm_loss_curve.pdf}
+  \caption[Full-resolution LSTM loss curves]{Full-resolution LSTM training and validation loss curves.}
+  \label{fig:appendix-lstm-loss-curve}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_c_2_gru_loss_curve.pdf}
+  \caption[Full-resolution GRU loss curves]{Full-resolution GRU training and validation loss curves.}
+  \label{fig:appendix-gru-loss-curve}
+\end{figure}
+
+\section{Checkpoint Comparison}
+
+Figure~\ref{fig:appendix-best-vs-final-esr} expands the checkpoint comparison summarised in Table~4.4. The intent is to make the reporting decision transparent: the best-validation checkpoint is treated as the primary model state because it represents the parameter set chosen by validation performance, not the arbitrary final epoch reached before early stopping halted training.
+
+The figure also makes the asymmetry between the two architectures clearer. The LSTM barely shifts between its best-validation and final checkpoints. The GRU, on the other hand, shows a visibly larger increase in ESR at the final checkpoint, which suggests that validation-selected checkpoints matter more for the GRU under this training regime.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/figures/appendix_best_vs_final_esr.pdf}
+  \caption[Best-validation and final-checkpoint ESR]{Comparison of best-validation and final-checkpoint ESR for the LSTM and GRU models.}
+  \label{fig:appendix-best-vs-final-esr}
+\end{figure}
+
+\section{Waveform and Spectral Detail}
+
+The remaining figures provide qualitative backing for the objective results reported in Section~4.3. They are not meant to replace the numerical metrics. Instead, they show how the residual model errors appear in the time and time--frequency domains across more than one excerpt from the held-out test material.
+
+Figures~\ref{fig:appendix-waveform-examples} and~\ref{fig:appendix-spectrogram-examples} extend the single example shown in Chapter~4 with additional waveform and spectrogram views. These help separate broad agreement in signal shape from the smaller residual differences that remain after training, particularly around transients and at higher frequencies.
+
+Figures~\ref{fig:appendix-residual-waveform} and~\ref{fig:appendix-spectral-error} look at the error signal directly. The residual waveform plots show where the model outputs diverge from the target recording in the time domain, while the spectral-error plot summarises how those differences are distributed across frequency.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_waveform_examples.pdf}
+  \caption[Supplementary waveform comparisons]{Additional waveform comparison examples for the held-out test material.}
+  \label{fig:appendix-waveform-examples}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_spectrogram_examples.png}
+  \caption[Supplementary spectrogram comparisons]{Additional spectrogram comparison examples for the held-out test material.}
+  \label{fig:appendix-spectrogram-examples}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_residual_waveform.pdf}
+  \caption[Residual waveform examples]{Residual waveform examples showing the difference between model output and target signal.}
+  \label{fig:appendix-residual-waveform}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_spectral_error.pdf}
+  \caption[Spectral error comparison]{Spectral error comparison across the supplementary test examples.}
+  \label{fig:appendix-spectral-error}
+\end{figure}

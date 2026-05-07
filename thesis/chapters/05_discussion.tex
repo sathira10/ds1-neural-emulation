@@ -1,1 +1,102 @@
 \chapter{Discussion}
+\label{chap:discussion}
+
+\section{Chapter Overview}
+
+This chapter interprets the results from Chapter~4 and considers what they mean for the research question, the existing literature, and the practice-based artefact. Rather than repeating the numerical results, the discussion focuses on what those results reveal about neural emulation of the Boss DS-1 and the practical demands of real-time plugin deployment.
+
+The discussion covers the comparison between the LSTM and GRU models, the accuracy--efficiency trade-off between them, and the implications of the plugin as a research artefact. It also addresses the limitations of the study and what the findings can and cannot be generalised to say beyond the specific captured pedal setting. The contribution lies not only in the objective model comparison but in demonstrating an end-to-end workflow from hardware capture to deployable plugin artefact within a practice-based research framework \cite{candy_practice-based_2018,batty_research_2024}.
+
+\section{Answering the Research Question}
+
+The results suggest that compact recurrent neural networks can emulate the captured Boss DS-1 response with useful objective accuracy. The strongest result came from the LSTM model, which achieved a best-checkpoint test ESR of approximately 0.021, compared with approximately 0.036 for the GRU. The LSTM also achieved a higher waveform correlation with the recorded pedal output, at approximately 0.990 compared with approximately 0.982 for the GRU. Both models followed the target signal closely, but the LSTM reproduced the captured DS-1 output more accurately under the tested conditions.
+
+That said, the result has a clear limit. No formal listening test was conducted, so the project does not prove that the LSTM is perceptually indistinguishable from the physical pedal. What it does show is a better objective waveform match on the test material. This is still a meaningful result, because the research question was concerned with both accuracy and practical deployment: the model was not only trained offline but exported and integrated into a working audio plugin, which means the project went beyond numerical model fitting to demonstrate a complete workflow from hardware capture to a 44.1~kHz real-time software artefact.
+
+The scope of the answer is narrow. The model represents one physical Boss DS-1 pedal at one captured setting, and it should not be read as a complete account of every DS-1 unit, every hardware revision, or every knob position. Within that fixed condition, the LSTM result supports the conclusion that compact recurrent networks are a viable method for modelling nonlinear guitar distortion in a real-time plugin context.
+
+\section{Interpreting the GRU and LSTM Trade-Off}
+
+The GRU--LSTM comparison is central to this dissertation because both models were trained under matched conditions: the same SimpleRNN structure, the same hidden size of 24, the same mono configuration, the same training and evaluation pipeline. The main architectural difference was the recurrent unit type, which is what makes the comparison meaningful.
+
+The GRU was the smaller model at 1,969 trainable parameters, compared with 2,617 for the LSTM. This reflects the usual appeal of the GRU as a more compact gated recurrent architecture \cite{cho_learning_2014}. In real-time audio, model size matters, and smaller models can reduce storage requirements and the cost of inference. But parameter count alone did not determine which model was better here. Despite having more parameters, the LSTM achieved the lower error and the closer match to the recorded DS-1 output.
+
+The LSTM contains a more elaborate gating structure and cell state, designed to help recurrent networks preserve and regulate temporal information over sequences \cite{hochreiter_long_1997}. A distortion pedal is not a memoryless clipping function; its response is shaped by filtering, nonlinear stages, and the recent history of the input signal. The LSTM's stronger result is consistent with this, though it cannot be attributed neatly to any single aspect of the architecture.
+
+The GRU still produced a functioning emulation and achieved a strong waveform correlation. In this experiment, however, the LSTM offered the better balance, because the additional parameters came with a clear improvement in objective accuracy, and the gap between 1,969 and 2,617 parameters is small in practical plugin terms. Both models are compact relative to most deep learning systems.
+
+The result should not be pushed into a general claim that LSTMs always outperform GRUs for audio modelling. A different dataset, hidden size, loss function, target device, or training setup could produce a different outcome. Within the conditions of this project, the LSTM was the stronger architecture for the DS-1 emulation task, and that is the result being reported.
+
+\section{Relationship to Existing Literature}
+
+The findings connect with previous research on virtual analog modelling, black-box audio modelling, and recurrent neural networks for nonlinear audio systems. Traditional approaches to distortion emulation have often used simplified circuit-informed structures, such as filter-distortion-filter models. \citet{yeh_simplified_2007} showed that this kind of approach can reproduce the general character of distortion and overdrive pedals in a computationally efficient way, without requiring a full circuit simulation. However, a simplified model still requires assumptions about where filtering and nonlinear stages sit in the signal chain.
+
+The Boss DS-1 is a useful example of why this is not a trivial problem. Its sound is shaped by input buffering, transistor gain, hard clipping, filtering, and tone shaping, not by any single stage. The ElectroSmash circuit analysis describes the DS-1 as a multi-stage circuit with transistor amplification, diode clipping, and tone filtering \citep{noauthor_electrosmash_nodate}. Similarly, \citet{yeh_simplified_2007} describe the distortion pedal as gain with a saturating nonlinearity placed between filtering stages, while also noting that the transistor stages are not completely negligible.
+
+\citet{wright_real-time_2019} are especially relevant here because they modelled the Boss DS-1 alongside other distortion pedals using a WaveNet-style neural architecture, supporting the idea that deep learning can work for real-time virtual analog modelling of nonlinear distortion circuits. The present project follows the same broad black-box philosophy, but focuses specifically on a direct LSTM versus GRU comparison for a captured DS-1 setting and extends the work into a practice-based plugin artefact.
+
+\citet{martinez_ramirez_deep_2020} describe deep learning for audio effects as an end-to-end black-box method where raw audio is used as both the input and output of the system. That description fits the methodology here directly. The neural model was not given a schematic of the DS-1, nor was it programmed with explicit equations for diodes, filters, or transistor stages; it learned from matched dry and processed recordings. This makes the method flexible and practical for a researcher who wants to model the behaviour of a specific physical unit rather than derive a white-box circuit simulation.
+
+The most direct point of comparison remains \citet{wright_real-time_2019}, who proposed recurrent neural networks for real-time black-box modelling of nonlinear audio systems. Their work compared LSTM and GRU recurrent units and found that compact RNNs could achieve strong accuracy while requiring less processing power than larger WaveNet-style models, and that the LSTM recurrent unit performed strongly overall. The findings here are consistent with that direction: the LSTM also outperformed the GRU on the objective test metrics, though the target device, dataset, and implementation details differ.
+
+\citet{cassidy_perceptual_2023} emphasise the importance of perceptual evaluation for deep neural network models of guitar amplification, arguing that objective accuracy measures alone do not fully answer whether a model sounds convincing or preferable in musical use. This matters for the present dissertation. The LSTM's lower ESR and higher correlation are strong technical results, but they should not be treated as proof that listeners would always perceive it as identical to the Boss DS-1. A listening test would be needed to make that claim, and a standardised method such as MUSHRA could be considered in future work, following the framework described in ITU-R BS.1534-3 \citep{ITU_BS1534_3}.
+
+Recurrent networks are well suited to this kind of task because they can represent temporal dependence through their internal state. The contribution of this dissertation is to apply that approach to a focused Boss DS-1 case study, compare LSTM and GRU models under matched conditions, and demonstrate the resulting models inside a working real-time plugin prototype.
+
+\section{Practice-Based Research Reflection}
+
+The research was not limited to training neural networks and reporting offline test metrics. It also produced a functioning audio plugin that loads the trained models and allows the user to interact with them in a digital audio workstation. This matters because the research question included real-time deployment, not only prediction accuracy.
+
+The plugin works as both AU and VST3 and has been tested in host environments including Ableton and Cubase. It includes model switching between the LSTM and GRU, Drive and Level controls, bypass operation, and a skeuomorphic user interface inspired by the original pedal. The CHECK LED follows the function of the original DS-1 indicator, showing when the effect is active rather than bypassed. These design choices make the artefact feel like a practical guitar effect rather than a technical demonstration.
+
+The Drive and Level controls should be understood carefully. The neural model itself was trained on a fixed DS-1 setting, so the plugin does not claim to model the entire range of the physical pedal's Tone, Distortion, and Level controls. Instead, the Drive knob functions as an input gain control before the model: a stronger signal into the neural emulation causes more distortion because the model responds to input level. The Level knob then acts as output gain, allowing the user to compensate for volume changes after adjusting Drive. This creates a useful and familiar gain-staging workflow, even if it is not the same as a fully conditioned model of all pedal controls.
+
+The researcher also tested the plugin personally by playing and listening through it. The sessions suggested that the artefact produced musically usable results, but this is reflective evidence rather than formal perceptual validation. It supports the practical value of the prototype without replacing a controlled listening test.
+
+The artefact is best described as a research prototype. It demonstrates that trained recurrent models can be exported from Python, loaded into a JUCE and RTNeural plugin, and used in a real-time audio context. JUCE provides the plugin framework, while RTNeural provides a route for fast neural inference in real-time systems \cite{noauthor_juce-frameworkjuce_2026,chowdhury_rtneural_2021}. Further validation and implementation work would be needed before it could be distributed confidently to other users.
+
+\section{Plugin Deployment and Real-Time Constraints}
+
+The deployment stage tests whether a trained model can survive the transition from offline research code to a real-time audio environment. A model that performs well in Python is not automatically suitable for plugin use. Real-time audio processing places strict demands on stability, low latency, and predictable behaviour, and inference must complete quickly enough inside the host's audio callback.
+
+JUCE provided the plugin framework and interface structure, while RTNeural provided a route for running the exported recurrent models in C++. This avoided any requirement for Python or PyTorch at runtime, with the exported JSON model files acting as a bridge between training and deployment. This reflects the kind of practical concern discussed in real-time neural audio research, where low-latency interaction depends not only on model accuracy but also on implementation choices \cite{chowdhury_rtneural_2021,caspe_designing_2025}.
+
+Both the LSTM and GRU were deployable in the same plugin structure, and the user could switch between them during use. From a research perspective, this strengthens the comparison because the models were evaluated not only as offline files but as parts of a working audio system. Although the LSTM has more parameters than the GRU, 2,617 parameters is still very compact for real-time audio use, and the improvement in objective accuracy makes the extra size acceptable in this prototype.
+
+\section{Sample-Rate Conversion as a Critical Limitation}
+
+The models were trained and evaluated at 44.1 kHz. This matters because a recurrent neural network processing audio sample by sample learns behaviour in relation to the timing of the training data. Running the same model directly at 48 kHz or 96 kHz without compensation changes the time relationship between samples, which could alter the model's response and reduce the validity of the emulation.
+
+For practical use, sample-rate conversion is essential. A real plugin release should accept whatever sample rate the DAW is using, convert the incoming host audio to 44.1 kHz for model processing, and convert the processed output back to the host sample rate. This would allow the neural model to operate under the same timing conditions it was trained on, while remaining compatible with normal DAW workflows. At the current prototype stage, the practical workaround is to ask the user to set the DAW session sample rate manually to 44.1 kHz.
+
+This limitation does not undermine the neural modelling result itself. Sample-rate conversion is a straightforward implementation stage rather than the core research contribution, and the project has demonstrated the modelling and deployment workflow at the trained sample rate. Full host sample-rate compatibility remains necessary for real-world use, but it does not affect the validity of the LSTM--GRU comparison under controlled conditions.
+
+\section{Limitations of the Study}
+
+The limitations fall into three main areas: fixed capture scope, objective-only evaluation, and deployment verification.
+
+The first is the narrow modelling scope. The project models one physical Boss DS-1 pedal at one fixed knob configuration. This makes the experiment controlled, but limits generalisation; the trained model should be understood as an emulation of the captured condition, not as a complete account of every DS-1 pedal or every setting. The fixed capture scope also extends to dataset coverage. A broader dataset could improve generality. Different guitars, pickup types, playing styles, note ranges, palm muting, sustained notes, chords, and dynamic levels could all expose different parts of the pedal's nonlinear response, and future work should investigate how dataset design affects emulation quality. Research on neural guitar models suggests that the choice of training material can influence perceptual performance \cite{cassidy_perceptual_2023}.
+
+The second limitation is the absence of formal perceptual evaluation. ESR, SNR, and correlation show how closely the model output matches the recorded target, but they do not describe musical experience. Guitar distortion is judged by tone, feel, responsiveness, realism, and how it sits in a mix. A future listening test, such as an ABX or MUSHRA-style evaluation, would be needed to test whether listeners can distinguish the neural model from the physical pedal \cite{cassidy_perceptual_2023,ITU_BS1534_3}. The present evaluation remains objective-only, though it is still informative for comparing the two architectures under matched conditions.
+
+The third limitation is that the Drive and Level controls in the plugin are gain-staging controls rather than fully modelled DS-1 knobs. A more advanced version could train a conditioned model across multiple knob settings, allowing the neural network to learn the behaviour of the pedal as its controls change. This would follow the direction of previous work where user controls are included in the training and modelling process \cite{wright_real-time_2019,cassidy_perceptual_2023}.
+
+The final limitation concerns deployment verification. The current prototype is most valid at 44.1 kHz, and before the plugin is distributed to other users, sample-rate conversion should be implemented and tested across common DAW sample rates. More broadly, this means confirming that the plugin workflow remains reliable outside the controlled conditions used in this dissertation.
+
+\section{Implications}
+
+The project has several implications for neural audio plugin development. Very compact recurrent neural networks can be useful for nonlinear guitar effect emulation. The LSTM model achieved the best objective match while remaining small enough to run in the tested 44.1~kHz real-time prototype, suggesting that practical neural audio plugins do not always require large architectures if the target and scope are clearly defined.
+
+The results also show that architecture choice should not be based only on parameter count. The GRU was smaller, but the LSTM produced the stronger emulation result. For this project, the additional LSTM parameters were justified because they improved accuracy while still keeping the model compact. The best model is not necessarily the smallest one, but the one that offers the most appropriate balance between accuracy, stability, and deployability.
+
+The artefact also demonstrates the value of practice-based research in audio engineering. The plugin revealed issues that would not be visible from offline training alone: sample-rate handling, user control design, bypass behaviour, model switching, and interface usability. These are not separate from the research but part of understanding whether a neural model is actually useful as an audio tool.
+
+The immediate next step is sample-rate conversion so that the plugin can be used reliably in DAW sessions not set to 44.1 kHz. After that, the most important research extension would be perceptual evaluation, which would connect the objective results to actual user experience. A conditioned model trained across multiple DS-1 knob settings would allow the plugin to emulate more of the original pedal's control behaviour.
+
+\section{Summary}
+
+The LSTM model was the strongest architecture for the captured Boss DS-1 emulation task. Although the GRU was smaller at 1,969 parameters compared with the LSTM's 2,617, the LSTM achieved lower objective error and a closer waveform match to the recorded pedal output. This is consistent with existing research showing that recurrent neural networks are suitable for real-time black-box modelling of nonlinear audio systems \cite{wright_real-time_2019}.
+
+The project's contribution is not only the comparison of two recurrent architectures. It is also the creation of an end-to-end practice-based workflow: recording a physical DS-1, training neural models, exporting them, integrating them into a JUCE and RTNeural plugin, and testing the result as an interactive audio effect. The artefact works as a research prototype with AU/VST3 deployment, model switching, Drive and Level gain staging, bypass operation, a CHECK indicator, and a skeuomorphic user interface.
+
+The main remaining implementation issue is sample-rate conversion. For now, the plugin should be used with the DAW set manually to 44.1 kHz, and it should not yet be treated as sample-rate independent. Before distribution to other users, a real-time-safe sample-rate conversion path should be implemented and verified. With that addition and future perceptual testing and broader training data, the project could develop from a focused research prototype into a more complete neural distortion plugin.
