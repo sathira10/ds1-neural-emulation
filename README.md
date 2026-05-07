@@ -12,6 +12,10 @@ The trained weights are exported as JSON and loaded at runtime by [RTNeural](htt
 
 The thesis documents the full workflow: hardware signal chain, dataset capture, model architecture, training methodology, evaluation, and plugin design.
 
+## Audio plugin
+
+The plugin is implemented with JUCE 8, RTNeural inference, and an embedded React/Vite WebUI. See [Audio plugin architecture](docs/audio-plugin-architecture.md) for the processing path, sample-rate handling, and UI integration details.
+
 ## Repository layout
 
 ```
@@ -36,8 +40,8 @@ Trained weights are in `model/Results/ds1-{LSTM,GRU}/model.json`. The copies emb
 
 | Control | Range      | Description                              |
 |---------|------------|------------------------------------------|
-| Drive   | ±20 dB     | Pre-gain applied before model inference  |
-| Level   | ±20 dB     | Output level                             |
+| Drive   | ±24 dB     | Pre-gain applied before model inference  |
+| Level   | ±24 dB     | Output level                             |
 | Model   | LSTM / GRU | Switch between the two trained models    |
 | Bypass  | on / off   | Hard bypass                              |
 
@@ -46,7 +50,7 @@ Trained weights are in `model/Results/ds1-{LSTM,GRU}/model.json`. The copies emb
 | Component | Requirement |
 |-----------|-------------|
 | Training  | Python 3.10+, [uv](https://docs.astral.sh/uv/) |
-| Plugin    | CMake 3.15+, C++23 toolchain (Clang / GCC / MSVC), Node.js + npm |
+| Plugin    | CMake 4.2+, C++23 toolchain (Clang / GCC / MSVC), Node.js + npm |
 | Thesis    | LaTeX distribution (pdflatex + bibtex) |
 
 ## Quickstart
