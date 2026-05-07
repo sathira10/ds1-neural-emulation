@@ -17,15 +17,10 @@ The implementation artefacts for this project are organised in an accompanying s
 
 The repository is available at:
 \begin{quote}
-\texttt{https://github.com/sathira10/ds1-neural-emulation}
+  \href{https://github.com/sathira10/ds1-neural-emulation/releases/tag/thesis-submitted}{\texttt{https://github.com/sathira10/ds1-neural-emulation}}
 \end{quote}
 
-The repository version used for the final dissertation submission should be identified by a fixed commit hash:
-\begin{quote}
-\texttt{COMMIT-HASH-PLACEHOLDER}
-\end{quote}
-
-This fixed version is important because the written thesis should correspond to a stable state of the implementation. If the repository continues to change after submission, the commit hash allows the submitted artefact to be distinguished from later development work.
+The repository version used for the final dissertation submission is identified by the Git tag \texttt{thesis-submitted}. This tag marks the repository state corresponding to the version submitted for examination. Using a fixed repository tag is important because it ties the written thesis to a stable state of the implementation. If the repository continues to change after submission, the tag allows the submitted artefact to be distinguished clearly from later development work.
 
 The first research artefact is the matched recording dataset. This dataset consists of original dry guitar recordings and corresponding wet recordings captured through the physical Boss DS-1 pedal. The dry recording acts as the model input and the processed DS-1 recording acts as the target output. Because the recordings are paired, the modelling task can be treated as supervised learning: the network is trained to reproduce the pedal output for a known input signal.
 
@@ -38,24 +33,24 @@ The fourth artefact is the JUCE/RTNeural plugin. This plugin provides the deploy
 The final artefact is the written thesis documentation. The dissertation explains the technical decisions, methodological boundaries, implementation state, and limitations of the project. This is necessary because the artefact alone does not fully communicate the research design. The written component clarifies what was controlled, what was measured, what remains outside the scope, and how the implementation should be interpreted.
 
 \begin{table}[h]
-\centering
-\caption{Repository locations of key methodological artefacts}
-\label{tab:repository-artefacts}
-\begin{tabular}{p{0.34\linewidth} p{0.56\linewidth}}
-\hline
-\textbf{Repository path} & \textbf{Role in the methodology} \\
-\hline
-\texttt{thesis/} & LaTeX dissertation source files. \\
-\texttt{model/} & Python training pipeline, dataset folders, model configurations, and results. \\
-\texttt{model/Data/train} & Training audio used for model weight optimisation. \\
-\texttt{model/Data/val} & Validation audio used for monitoring generalisation during training. \\
-\texttt{model/Data/test} & Held-out test audio used for final objective evaluation. \\
-\texttt{model/Configs/} & JSON configuration files defining training settings. \\
-\texttt{model/Results/} & Exported models, checkpoints, generated audio, and training statistics. \\
-\texttt{plugin/} & JUCE/RTNeural plugin implementation. \\
-\texttt{plugin/Resources/Models/} & Exported LSTM and GRU JSON model files embedded or loaded by the plugin. \\
-\hline
-\end{tabular}
+  \centering
+  \caption{Repository locations of key methodological artefacts}
+  \label{tab:repository-artefacts}
+  \begin{tabular}{p{0.34\linewidth} p{0.56\linewidth}}
+    \hline
+    \textbf{Repository path} & \textbf{Role in the methodology} \\
+    \hline
+    \texttt{thesis/} & LaTeX dissertation source files. \\
+    \texttt{model/} & Python training pipeline, dataset folders, model configurations, and results. \\
+    \texttt{model/Data/train} & Training audio used for model weight optimisation. \\
+    \texttt{model/Data/val} & Validation audio used for monitoring generalisation during training. \\
+    \texttt{model/Data/test} & Held-out test audio used for final objective evaluation. \\
+    \texttt{model/Configs/} & JSON configuration files defining training settings. \\
+    \texttt{model/Results/} & Exported models, checkpoints, generated audio, and training statistics. \\
+    \texttt{plugin/} & JUCE/RTNeural plugin implementation. \\
+    \texttt{plugin/Resources/Models/} & Exported LSTM and GRU JSON model files embedded or loaded by the plugin. \\
+    \hline
+  \end{tabular}
 \end{table}
 
 \section{Dataset Design and Recording Scope}
@@ -63,7 +58,7 @@ The final artefact is the written thesis documentation. The dissertation explain
 
 The dataset was designed to support a controlled comparison between recurrent model architectures. All captures were made using a single physical Boss DS-1 distortion pedal. The pedal controls were held at a fixed setting, with Tone, Distortion, and Level all positioned at 12 o'clock. This fixed configuration reduces variation in the target system so that the trained models are compared against the same captured pedal response.
 
-The paired dataset contains dry input audio and corresponding target audio processed through the DS-1. The dry audio provides the input sequence for the neural network. The wet DS-1 recording provides the target sequence that the network attempts to predict. This input-output structure is appropriate for black-box modelling because the model is not given an explicit circuit description. Instead, it learns the relationship between the dry signal and the processed signal from recorded examples.
+The paired dataset contains dry input audio and corresponding target audio processed through the DS-1. The dry audio provides the input sequence for the neural network. The wet DS-1 recording provides the target sequence that the network attempts to predict. The source material included both electric guitar and bass guitar performances, covering practical variations such as single notes, chordal playing, palm-muted attacks, sustained notes, and changes in picking dynamics. This input-output structure is appropriate for black-box modelling because the model is not given an explicit circuit description. Instead, it learns the relationship between the dry signal and the processed signal from recorded examples.
 
 The dataset is organised into three splits under the training pipeline: \texttt{model/Data/train}, \texttt{model/Data/val}, and \texttt{model/Data/test}. The training set is used for weight updates during model optimisation. The validation set is used to monitor generalisation during training, control learning-rate scheduling, and support early stopping. The test set is held back for final objective evaluation and should not be used to tune model parameters or choose training settings.
 
@@ -100,11 +95,11 @@ The main objective loss used in the project is Error-to-Signal Ratio (ESR). ESR 
 
 DC loss is used as a supplementary term. This loss penalises mismatch in the average or low-frequency offset between the model output and the target signal. DC offset is important in audio modelling because a model could produce a waveform that has a similar general shape but includes an unwanted bias. Such a bias may reduce technical audio quality and may cause problems when the model output is used in a plugin signal chain.
 
-The final objective evaluation should be carried out on the held-out test set. The training set is used for optimisation and the validation set is used for monitoring and model selection, so neither should be treated as the final measure of generalisation. The test set provides a more appropriate estimate of how well the trained model reproduces target material that was not used for weight updates or validation-driven decisions.
+The final objective evaluation is carried out on the held-out test set. The training set is used for optimisation and the validation set is used for monitoring and model selection, so neither is treated as the final measure of generalisation. The test set provides a more appropriate estimate of how well the trained model reproduces target material that was not used for weight updates or validation-driven decisions.
 
-Parameter count is included as an efficiency metric because real-time deployment is part of the research question. The current plugin-compatible LSTM model contains 2,617 parameters, while the corresponding GRU model contains 1,969 parameters. This difference reflects the recurrent cell structures: an LSTM uses more gate groups than a GRU and therefore requires more weights for the same hidden size. Parameter count does not fully determine CPU cost, but it is a useful indicator of model compactness and deployment efficiency.
+Parameter count is included as an efficiency metric because real-time deployment is part of the research question. The implemented LSTM model contains 2,617 parameters, while the corresponding GRU model contains 1,969 parameters. This difference reflects the recurrent cell structures: an LSTM uses more gate groups than a GRU and therefore requires more weights for the same hidden size. Parameter count does not fully determine CPU cost, but it is a useful indicator of model compactness and deployment efficiency.
 
-ESR and DC loss are objective metrics. They are useful for comparing model outputs against recorded target waveforms, but they do not replace formal perceptual evaluation. A lower objective error does not automatically prove that a model is perceptually indistinguishable from the hardware pedal. Conversely, some waveform differences may be audible only weakly or may be musically acceptable. For this reason, the evaluation in this project should be interpreted as objective and technical rather than as a formal listening study.
+ESR and DC loss are objective metrics. They are useful for comparing model outputs against recorded target waveforms, but they do not replace formal perceptual evaluation. A lower objective error does not automatically prove that a model is perceptually indistinguishable from the hardware pedal. Conversely, some waveform differences may be audible only weakly or may be musically acceptable. For this reason, the evaluation in this project is objective and technical rather than a formal listening study.
 
 \section{Model Export and Validation}
 \label{sec:model-export-validation}
@@ -113,7 +108,7 @@ The trained models are exported in a CoreAudioML-style JSON format. Each JSON fi
 
 The key metadata that must remain explicit includes the model class, recurrent unit type, hidden size, input size, output size, number of recurrent layers, skip connection state, and sample rate. These values are not incidental. They define whether the exported model is compatible with the plugin's statically typed inference path. A mismatch between the exported architecture and the plugin implementation could lead to incorrect inference, failed loading, or unstable runtime behaviour.
 
-After training, selected exported models are copied or embedded into \texttt{plugin/Resources/Models/}. This resource path contains the JSON files used by the plugin build. During plugin compilation, the model files can be embedded as binary resources so that the deployed plugin contains the trained LSTM and GRU weights without needing to locate external files at runtime.
+After training, selected exported models are copied or embedded into the plugin resource directory, \texttt{plugin/Resources/Models/}. This directory contains the JSON files used by the plugin build. During plugin compilation, the model files can be embedded as binary resources so that the deployed plugin contains the trained LSTM and GRU weights without needing to locate external files at runtime.
 
 The plugin loader validates the JSON before use and rejects unsupported architectures. In the current implementation, the plugin-compatible model is restricted to a mono \texttt{SimpleRNN} with one recurrent layer, hidden size 24, supported unit type, and valid skip connection setting. This validation step is methodologically important because it prevents the deployment result from depending on unverified assumptions about the model file. It also makes the boundary between the training artefact and deployment artefact explicit.
 
@@ -135,7 +130,7 @@ The neural models are trained at 44.1 kHz, so model inference should occur at 44
 
 The required real-time signal path is therefore: host sample rate to 44.1 kHz, neural model inference at 44.1 kHz, and 44.1 kHz back to the host sample rate. For a DAW session running at 48 kHz, 96 kHz, or another rate, the wet-path signal should be converted before it reaches the recurrent model and converted back before it is mixed into the plugin output. Without this conversion, the model may be driven at the wrong temporal rate, which could alter the effective response of the emulation.
 
-This sample-rate conversion path should be treated as a required implementation and verification step rather than as a completed claim unless it has been fully implemented and tested. The thesis should avoid overstating this part of the artefact. It is valid to identify the requirement, explain why it matters, and define the constraints for completion, but final results should only claim successful sample-rate handling after the plugin has been tested in non-44.1 kHz host sessions.
+Within this project, this sample-rate conversion path is identified as a required engineering step rather than a completed part of the deployed artefact. The reported runtime validation is therefore limited to 44.1~kHz host sessions, where the host rate matches the model training rate.
 
 The implementation constraints are significant because the process occurs in a real-time audio callback. The resampler must avoid audio-thread allocation, maintain persistent state across processing blocks, reset cleanly during \texttt{prepareToPlay()} and model or transport resets, and report any additional latency to the host if latency is introduced. These constraints make sample-rate handling a plugin engineering issue as well as a modelling issue.
 
@@ -148,4 +143,4 @@ The second limitation is that only one knob setting is captured. Tone, Distortio
 
 The third limitation is that objective waveform metrics do not establish perceptual indistinguishability. ESR and DC loss provide useful technical evidence, but a formal listening study would be required to make stronger perceptual claims. Future work could extend the evaluation using ABX or MUSHRA-style tests with guitarists, engineers, or trained listeners.
 
-The fourth limitation is that plugin testing should be interpreted as artefact validation rather than full commercial quality assurance. The plugin demonstrates the deployment path from trained model to real-time processor, but this does not imply exhaustive testing across all DAWs, operating systems, sample rates, buffer sizes, and session conditions. Within the dissertation, the plugin should therefore be discussed as a research artefact that validates the workflow rather than as a finished commercial product.
+The fourth limitation is that plugin testing is artefact validation rather than full commercial quality assurance. The plugin demonstrates the deployment path from trained model to real-time processor, but this does not imply exhaustive testing across all DAWs, operating systems, sample rates, buffer sizes, and session conditions. It is therefore presented as a research artefact that validates the workflow rather than as a finished commercial product.

@@ -1,1 +1,62 @@
-\chapter{Recording Signal Chain and DS-1 Settings}
+\chapter{Recording Signal Chain}
+\label{appendix:recording-chain}
+
+This appendix documents the recording pipeline used to capture the matched dry and processed audio material for the Boss DS-1 neural emulation experiment. The purpose of the pipeline was to create aligned input and target recordings for supervised model training, where the dry signal acted as the neural network input and the Boss DS-1 processed signal acted as the target output.
+
+The source audio was played back from Cubase 12 as mono WAV material at 44.1 kHz and 16-bit resolution. This format was selected to match the audio format used by the training pipeline. The playback material consisted of standard guitar recording material used to train the models, including both electric guitar and bass guitar performances. The examples covered practical variations such as single notes, chordal playing, palm-muted attacks, sustained notes, and changes in picking dynamics so that the models were exposed to a broader range of pitch content, transient behaviour, and playing intensity than a single performance type would provide.
+
+The audio interface used for playback and capture was an Audient iD14. Audio was sent from the interface line outputs into the external pedal recording chain and returned through the interface line inputs. A dedicated re-amp box was not available during the recording process. As a practical workaround, the interface output level was reduced and a Radial StageBug SB-2 DI box was used in reverse to feed the pedal path. The output from this stage was connected to the input of the Boss DS-1 distortion pedal.
+
+The Boss DS-1 was recorded with all three controls in their default middle positions. The Tone, Distortion, and Level controls were each set to approximately 12 o'clock. This fixed setting was used throughout the capture process so that the dataset represented one clearly defined pedal condition rather than a changing or parameterised version of the DS-1.
+
+The processed output from the Boss DS-1 was then returned to the Audient iD14 through a second DI stage and recorded as the wet target signal. At the same time, the through output of the first DI box was recorded as a second input through the interface instrument input. This provided a dry reference signal that travelled through a comparable recording path to the processed signal. Capturing the dry reference in this way helped avoid problems caused by latency offsets between separate playback and recording passes, because the dry and wet signals were recorded during the same pass. Figure~\ref{fig:recording-signal-chain} summarises the complete routing used during capture.
+
+\begin{figure}[tbp]
+  \centering
+  \begin{tikzpicture}[
+      node distance=0.9cm,
+      block/.style={
+        draw,
+        rounded corners=2pt,
+        line width=0.8pt,
+        align=center,
+        minimum width=4.5cm,
+        minimum height=0.9cm,
+        fill=gray!8,
+        font=\small
+      },
+      arrow/.style={->, thick},
+      split/.style={circle, draw, fill=black, inner sep=1.7pt}
+    ]
+
+    \node[block] (cubase) {Cubase 12 playback};
+    \node[block, below=of cubase] (idout) {Audient iD14 line out};
+    \node[block, below=of idout] (di1) {Radial SB-2 DI\\used in reverse};
+    \node[split, below=0.55cm of di1] (splitnode) {};
+
+    \node[block, below left=1.1cm and 1.35cm of splitnode] (dry) {Dry reference\\iD14 instrument input};
+    \node[block, below right=1.1cm and 1.35cm of splitnode] (ds1) {Boss DS-1\\controls at 12~o'clock};
+
+    \node[block, below=of ds1] (di2) {Second DI stage};
+    \node[block, below=of di2] (wet) {Wet target\\iD14 line input};
+
+    \draw[arrow] (cubase) -- (idout);
+    \draw[arrow] (idout) -- (di1);
+    \draw[arrow] (di1) -- (splitnode);
+
+    \draw[arrow] (splitnode) -| node[pos=0.35, above left, font=\footnotesize]{thru} (dry);
+    \draw[arrow] (splitnode) -| node[pos=0.35, above right, font=\footnotesize]{to pedal} (ds1);
+
+    \draw[arrow] (ds1) -- (di2);
+    \draw[arrow] (di2) -- (wet);
+
+  \end{tikzpicture}
+  \caption{Recording signal chain used to capture aligned dry reference and Boss DS-1 processed target signals.}
+  \label{fig:recording-signal-chain}
+\end{figure}
+
+This routing also helped keep the comparison between the two recorded channels consistent. Rather than recording one signal completely clean and the other through additional analog stages, both paths passed through practical recording hardware before reaching the interface. As a result, any coloration introduced by the capture chain was treated as part of the recorded dataset rather than as a separate correction stage.
+
+No amplifier or cabinet simulation was used in the recording chain. The captured target was the direct output of the Boss DS-1 pedal chain, not the sound of a complete guitar amplifier setup. This was intentional, because the research focused specifically on modelling the nonlinear response of the DS-1 pedal rather than the combined response of a pedal, amplifier, loudspeaker, and microphone.
+
+The resulting dataset therefore consisted of mono matched WAV recordings: a dry input signal and a corresponding DS-1 processed target signal. These recordings formed the basis of the train, validation, and test material used in the neural modelling experiment.

@@ -41,7 +41,7 @@ The objectives of the project are:
 
 \begin{enumerate}
 
-  \item To train compact recurrent neural network models using a PyTorch-based CoreAudioML-style pipeline, comparing GRU and LSTM architectures under matched conditions.
+  \item To train compact recurrent neural network models with a PyTorch pipeline based on the CoreAudioML workflow and compare GRU and LSTM architectures under matched conditions.
 
   \item To evaluate model accuracy using objective error measures based on the difference between predicted outputs and recorded pedal outputs.
 
@@ -57,7 +57,7 @@ Together, these objectives position the dissertation as both an audio engineerin
 
 The implemented system follows an end-to-end pipeline from hardware capture to plugin deployment. First, dry guitar recordings are paired with processed recordings from the Boss DS-1. These matched recordings are divided into training, validation, and test material. The training process is carried out in Python using PyTorch and a CoreAudioML-style model pipeline. The recurrent models are trained as black-box emulators that predict the pedal output from the dry input signal.
 
-The active model architecture is a compact recurrent model with a single recurrent layer followed by a dense output layer. Both the GRU and LSTM versions use a hidden size of 24, with mono input and mono output. This hidden size is used because it matches the current plugin-compatible model format and supports real-time deployment through the C++ inference path. The trained model weights are exported as JSON files, allowing the deployment stage to avoid any dependency on Python or PyTorch at runtime.
+The active model architecture is a compact recurrent model with a single recurrent layer followed by a dense output layer. Both the GRU and LSTM versions use a hidden size of 24, with mono input and mono output. This hidden size is used because it matches the implemented plugin model format and supports real-time deployment through the C++ inference path. The trained model weights are exported as JSON files, allowing the deployment stage to avoid any dependency on Python or PyTorch at runtime.
 
 The exported models are embedded into a JUCE plugin and loaded into RTNeural for real-time inference. This means the project tests the complete practical chain: recording a hardware device, training neural models, serialising the trained weights, loading them in a C++ plugin, and evaluating whether the resulting system can operate in a real-time audio environment. Taken together, the dataset, trained models, export pipeline, and plugin function as the project's research artefacts, with the plugin serving as the main deployment artefact and demonstration of the method.
 

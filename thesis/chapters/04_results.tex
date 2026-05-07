@@ -79,14 +79,14 @@ Table~\ref{tab:validation_behaviour} shows that both models continued for 52 epo
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{images/figures/fig_4_1_loss_curves.pdf}
-  \caption{Training and validation loss curves for the LSTM and GRU models. Full-resolution curves are provided in Appendix~C.}
+  \caption[Training and validation loss curves]{Training and validation loss curves for the LSTM and GRU models. Full-resolution curves are provided in Appendix~C.}
   \label{fig:loss_curves}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{images/figures/fig_4_2_learning_rate_schedule.pdf}
-  \caption{Learning-rate schedule during LSTM and GRU training.}
+  \caption[Learning-rate schedule]{Learning-rate schedule during LSTM and GRU training.}
   \label{fig:learning_rate}
 \end{figure}
 
@@ -138,18 +138,18 @@ Figure 4.3 shows an example waveform comparison between the target DS-1 recordin
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{images/figures/fig_4_3_waveform_comparison.pdf}
-  \caption{Example test-set waveform comparison}
+  \caption[Test-set waveform comparison]{Example test-set waveform comparison}
   \label{fig:example-test-set-waveform-comparison}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{images/figures/fig_4_4_spectrogram_comparison.png}
-  \caption{Example spectrogram comparison}
+  \caption[Test-set spectrogram comparison]{Example spectrogram comparison}
   \label{fig:example-spectrogram-comparison}
 \end{figure}
 
-Informal listening during plugin testing suggested that the LSTM output preserved slightly more high-frequency content than the GRU version and was marginally closer to the target recordings. However, the two models were mostly indistinguishable from the target material during informal monitoring. This observation is reported only as a practical listening note and should not be interpreted as a formal perceptual evaluation.
+Informal monitoring during plugin testing suggested broadly usable outputs from both models, with the LSTM appearing slightly closer in high-frequency detail. However, because no controlled listening test was conducted, these observations are reported only as practical notes and should not be interpreted as formal perceptual evidence.
 
 \section{Architecture and Parameter Comparison}
 \label{sec:architecture-and-parameter-comparison}
@@ -196,7 +196,7 @@ The GRU model used 648 fewer parameters than the LSTM model under the matched hi
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.9\textwidth]{images/figures/fig_4_5_accuracy_efficiency.pdf}
-  \caption{Accuracy--efficiency comparison between the matched LSTM and GRU models.}
+  \caption[Accuracy--efficiency comparison]{Accuracy--efficiency comparison between the matched LSTM and GRU models.}
   \label{fig:accuracy-efficiency-comparison}
 \end{figure}
 
@@ -228,9 +228,18 @@ The plugin-side model loader was constrained to accept the model configuration u
 \section{Plugin Runtime Observations}
 \label{sec:plugin-runtime-observations}
 
-The exported models were tested in the deployed JUCE and RTNeural plugin. The plugin was built and tested as VST3 and AU. Runtime testing was carried out in Ableton Live 12 and Cubase 12 on an M2 Max MacBook Pro with 32 GB unified memory running the current macOS Tahoe installation used for the project.
+The exported models were tested in the deployed JUCE and RTNeural plugin. The plugin was built and tested as VST3 and AU. Runtime testing was carried out in Ableton Live 12 and Cubase 12 on an M2 Max MacBook Pro with 32 GB unified memory running macOS Tahoe. Because the trained models operate at 44.1~kHz, the runtime validation reported here was limited to 44.1~kHz host sessions.
 
 The plugin exposed the main controls required for the research artefact: Drive, Level, Bypass, and Model selection. Both LSTM and GRU models loaded correctly and could be selected from within the plugin. No model-loading errors, control-related artefacts, or audible artefacts during knob movement were observed during the final tests.
+
+Figure~\ref{fig:plugin-ui-ableton-results} shows the deployed plugin loaded in Ableton Live 12 during the final runtime tests. The screenshot is included here to document the final research artefact as it appeared in a representative host environment.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/plugin_ui_ableton.png}
+  \caption[Plugin interface in Ableton Live 12]{Boss DS-1 neural emulation plugin loaded in Ableton Live 12 during final runtime testing.}
+  \label{fig:plugin-ui-ableton-results}
+\end{figure}
 
 Model switching between LSTM and GRU also behaved correctly in the tested hosts. The hidden state was reset during switching, and no switching artefacts were observed during the reported tests. This supports the plugin’s use as a practical comparison artefact for the two exported recurrent models.
 
@@ -241,6 +250,6 @@ No formal CPU benchmark was completed. Therefore, this chapter does not report a
 
 The results show a clear objective difference between the two recurrent architectures under the matched hidden-size-24 configuration. The LSTM achieved the lower held-out test ESR, lower RMSE and MAE, higher error-relative SNR, and higher waveform correlation. The GRU used fewer parameters and stopped much earlier during training, but its validation and test-set error remained higher than the LSTM.
 
-The exported JSON artefacts were successfully loaded into the JUCE and RTNeural plugin, and the plugin operated correctly in the tested VST3 and AU host environments. Drive, Level, Bypass, and Model switching behaved as expected, and no switching or knob-movement artefacts were observed during the final tests. However, no formal CPU benchmark was completed, and the non-44.1 kHz resampling path was not yet implemented and verified.
+The exported JSON artefacts were successfully loaded into the JUCE and RTNeural plugin, and the plugin operated correctly in the tested VST3 and AU host environments. Drive, Level, Bypass, and Model switching behaved as expected, and no switching or knob-movement artefacts were observed during the final tests. However, no formal CPU benchmark was completed, and validation did not extend beyond 44.1~kHz host sessions because the non-44.1~kHz resampling path was not part of the tested deployment.
 
-Overall, the measured results indicate that the LSTM provided the stronger objective emulation accuracy, while the GRU provided the smaller model. Chapter 5 interprets this accuracy-efficiency trade-off in relation to the research question, the hidden-size-24 constraint, and the practical requirements of real-time neural audio plugin deployment.
+Overall, the measured results indicate that the LSTM provided the stronger objective emulation accuracy, while the GRU provided the smaller model. The deployed prototype was functionally validated in 44.1~kHz host sessions, but formal CPU benchmarking and multi-sample-rate validation remain future work. Chapter 5 interprets this accuracy-efficiency trade-off in relation to the research question, the hidden-size-24 constraint, and the practical requirements of real-time neural audio plugin deployment.
