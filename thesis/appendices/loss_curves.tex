@@ -1,35 +1,58 @@
 \chapter{Training Loss Curves}
 
-\section{Purpose of the Appendix}
+This appendix collects the full-resolution training and evaluation figures referenced in Chapter~4. These plots are provided here so that the main results chapter can remain readable while still preserving the detailed visual evidence used to interpret the model comparison.
 
-\begin{itemize}
-    \item Provide full-size training and validation curves that support the concise results reported in Chapter 4.
-    \item Allow the reader to inspect convergence behaviour, overfitting, instability, and early stopping.
-    \item Keep detailed visual evidence separate from the main results narrative.
-\end{itemize}
+\section{Per-Model Training Curves}
 
-\section{LSTM Training Curves}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_c_1_lstm_loss_curve.pdf}
+  \caption{Full-resolution LSTM training and validation loss curves.}
+  \label{fig:appendix-lstm-loss-curve}
+\end{figure}
 
-\begin{itemize}
-    \item Insert the LSTM training loss curve.
-    \item Insert the LSTM validation loss curve.
-    \item Mark the best-validation epoch and final epoch.
-    \item Add a short caption explaining the plotted loss terms and smoothing, if any.
-\end{itemize}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_c_2_gru_loss_curve.pdf}
+  \caption{Full-resolution GRU training and validation loss curves.}
+  \label{fig:appendix-gru-loss-curve}
+\end{figure}
 
-\section{GRU Training Curves}
+\section{Checkpoint Comparison}
 
-\begin{itemize}
-    \item Insert the GRU training loss curve.
-    \item Insert the GRU validation loss curve.
-    \item Mark the best-validation epoch and final epoch.
-    \item Add a short caption explaining the plotted loss terms and smoothing, if any.
-\end{itemize}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{images/figures/appendix_best_vs_final_esr.pdf}
+  \caption{Comparison of best-validation and final-checkpoint ESR for the LSTM and GRU models.}
+  \label{fig:appendix-best-vs-final-esr}
+\end{figure}
 
-\section{Comparison Notes}
+\section{Waveform and Spectral Detail}
 
-\begin{itemize}
-    \item Note which model converged faster, if supported by the final logs.
-    \item Note whether either model showed overfitting or validation instability.
-    \item Refer back to the Chapter 4 results table for final ESR and parameter-count comparison.
-\end{itemize}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_waveform_examples.pdf}
+  \caption{Additional waveform comparison examples for the held-out test material.}
+  \label{fig:appendix-waveform-examples}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_spectrogram_examples.png}
+  \caption{Additional spectrogram comparison examples for the held-out test material.}
+  \label{fig:appendix-spectrogram-examples}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_residual_waveform.pdf}
+  \caption{Residual waveform examples showing the difference between model output and target signal.}
+  \label{fig:appendix-residual-waveform}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{images/figures/appendix_spectral_error.pdf}
+  \caption{Spectral error comparison across the supplementary test examples.}
+  \label{fig:appendix-spectral-error}
+\end{figure}

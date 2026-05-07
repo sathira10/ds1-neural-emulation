@@ -1,0 +1,21 @@
+# LaTeX build outputs
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+/main.pdf
+*.run.xml
+*.synctex.gz
+*.toc
+
+# Editor and OS files
+.DS_Store
+*.swp
+*.swo
+*~
