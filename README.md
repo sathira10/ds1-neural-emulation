@@ -1,6 +1,6 @@
 # Boss DS-1 Neural Emulation
 
-Real-time neural emulation of the Boss DS-1 distortion pedal, comparing LSTM and GRU recurrent architectures trained on captured hardware recordings and deployed as a JUCE audio plugin. This is the accompanying codebase for a master's thesis.
+Real-time neural emulation of the Boss DS-1 distortion pedal, comparing LSTM and GRU recurrent architectures trained on captured hardware recordings and deployed as a JUCE audio plugin. This is the accompanying codebase for a research thesis.
 
 ![Boss DS-1 plugin GUI](docs/plugin-screenshot.png)
 
