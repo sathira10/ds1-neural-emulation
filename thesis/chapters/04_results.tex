@@ -1,83 +1,249 @@
 \chapter{Results}
+\label{chap:results}
 
 \section{Purpose of the Results Chapter}
+\label{sec:purpose-of-the-results-chapter}
 
-\begin{itemize}
-    \item Present measured outcomes from the training, evaluation, export, and plugin deployment stages.
-    \item Report results without extended interpretation; detailed interpretation belongs in Chapter 5.
-    \item Avoid inventing values: insert final measured ESR, loss, timing, CPU, or latency figures only after they have been confirmed from artefacts or tests.
-\end{itemize}
+This chapter presents the measured results from the dataset preparation, model training, objective evaluation, model export, and plugin deployment stages of the project. The purpose of this chapter is to report the outcomes of the experimental workflow rather than to provide extended interpretation. The wider implications of the results, including the trade-off between model accuracy and deployment efficiency, are discussed in Chapter 5.
+
+The results are reported from the completed LSTM and GRU training runs, the exported model artefacts, and the plugin tests carried out in digital audio workstation environments. Error-to-Signal Ratio (ESR) is treated as the primary objective accuracy metric, with SNR, correlation, RMSE, and MAE included as supporting measures. Informal listening observations are included only as practical deployment observations and are not treated as a substitute for a formal perceptual listening test.
 
 \section{Dataset and Experimental Artefacts}
+\label{sec:dataset-and-experimental-artefacts}
 
-\begin{itemize}
-    \item Report the final dataset files used for training, validation, and testing.
-    \item State sample rate, duration, number of segments, and any preprocessing once confirmed.
-    \item Confirm the DS-1 knob setting and signal-chain details by reference to Appendix A.
-    \item Note any exclusions, edits, or rejected takes if applicable.
-\end{itemize}
+The final dataset consisted of matched dry input and Boss DS-1 target recordings divided into training, validation, and test splits. All audio files used for training and evaluation were recorded and processed at 44.1 kHz. The dataset was organised as paired mono input and target WAV files, allowing the recurrent models to learn a direct sample-level mapping from the dry guitar signal to the corresponding processed DS-1 output.
+
+The DS-1 pedal setting and recording signal chain are documented in Appendix A. The present chapter reports the measured dataset properties and model outcomes rather than repeating the full recording methodology.
+
+\begin{table}[htbp]
+\centering
+\caption{Dataset summary}
+\label{tab:dataset-summary}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llrrrrr}
+\toprule
+\textbf{Split} & \textbf{Signal} & \textbf{Sample rate} & \textbf{Samples} & \textbf{Duration} & \textbf{RMS} & \textbf{Peak absolute value} \\
+\midrule
+Training & Input & 44.1 kHz & 14,994,001 & 340.00 s & 0.069594 & 0.550920 \\
+Training & Target & 44.1 kHz & 14,994,001 & 340.00 s & 0.089206 & 0.432600 \\
+Validation & Input & 44.1 kHz & 2,251,753 & 51.06 s & 0.066855 & 0.552324 \\
+Validation & Target & 44.1 kHz & 2,251,753 & 51.06 s & 0.084724 & 0.384716 \\
+Test & Input & 44.1 kHz & 2,646,001 & 60.00 s & 0.102890 & 0.565722 \\
+Test & Target & 44.1 kHz & 2,646,001 & 60.00 s & 0.115847 & 0.394543 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The training split was substantially longer than the validation and test splits, while the held-out test split provided a separate 60-second evaluation signal that was not used for model fitting. The input and target files were aligned as paired recordings so that objective test metrics could be calculated directly from the difference between the model output and the recorded DS-1 target waveform.
 
 \section{Training Behaviour}
+\label{sec:training-behaviour}
 
-\begin{itemize}
-    \item Present training and validation loss curves for LSTM and GRU.
-    \item Report convergence behaviour: stability, early stopping point, learning-rate reductions, and best-validation epoch.
-    \item Identify whether either model showed overfitting, underfitting, instability, or unusually slow convergence.
-    \item Refer to Appendix C for full-resolution loss curves.
-\end{itemize}
+Both recurrent models were trained using the same training pipeline so that the LSTM and GRU could be compared under matched conditions. The training procedure used the Adam optimiser, an initial learning rate of 0.005, weight decay of \(1 \times 10^{-4}\), and a validation-based learning-rate scheduler. The loss function combined pre-emphasised ESR and DC loss using the weighting \(0.75 \times \mathrm{ESRPre} + 0.25 \times \mathrm{DC}\).
+
+Figure~\ref{fig:loss_curves} shows the training and validation loss curves for both models. The LSTM continued improving for a longer period and reached its best validation result at epoch 284. The GRU reached its best validation result earlier, at epoch 86, and stopped after a shorter training run. This indicates that the GRU converged earlier under the current configuration, while the LSTM ultimately achieved the lower validation loss.
+
+\begin{table}[htbp]
+\centering
+\caption{Training behaviour summary for the LSTM and GRU models.}
+\label{tab:training_behaviour}
+\begin{tabular}{lrrrr}
+\hline
+Model & Epochs Run & Best Epoch & Best Val. Loss & Final Train Loss \\
+\hline
+LSTM & 336 & 284 & 0.023025 & 0.021342 \\
+GRU  & 138 & 86  & 0.037394 & 0.027822 \\
+\hline
+\end{tabular}
+\end{table}
+
+Both models stopped early before reaching the maximum epoch limit. The LSTM ran for 336 epochs and achieved the lower best-validation loss, while the GRU ran for 138 epochs and therefore reached its stopping condition much earlier. The validation curves show that the GRU improved more quickly at the beginning of training, but did not reach the same final validation performance as the LSTM.
+
+\begin{table}[htbp]
+\centering
+\caption{Validation behaviour after the best checkpoint.}
+\label{tab:validation_behaviour}
+\begin{tabular}{lrrr}
+\hline
+Model & Final Val. Loss & Generalisation Gap & Post-Best Epochs \\
+\hline
+LSTM & 0.023741 & 0.001905 & 52 \\
+GRU  & 0.044003 & 0.003760 & 52 \\
+\hline
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:validation_behaviour} shows that both models continued for 52 epochs after their best validation checkpoint before stopping. The LSTM had the smaller generalisation gap at its best epoch, while the GRU showed a larger difference between training and validation loss. This supports the use of the best-validation checkpoint rather than the final epoch as the main model state for objective test-set comparison.
+
+\begin{figure}[htbp]
+\centering
+% \includegraphics[width=\textwidth]{figures/loss_curves.pdf}
+\caption{Training and validation loss curves for the LSTM and GRU models. Full-resolution curves are provided in Appendix~C.}
+\label{fig:loss_curves}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+% \includegraphics[width=\textwidth]{figures/learning_rate_schedule.pdf}
+\caption{Learning-rate schedule during LSTM and GRU training.}
+\label{fig:learning_rate}
+\end{figure}
 
 \section{Objective Test-Set Evaluation}
+\label{sec:objective-test-set-evaluation}
+\label{sec:objective_test_evaluation}
 
-\begin{itemize}
-    \item Report final ESR for the LSTM model on the held-out test set.
-    \item Report final ESR for the GRU model on the held-out test set.
-    \item Report DC loss or offset-related observations where available.
-    \item Compare final-model and best-validation-model test outputs if both are generated.
-    \item Include waveform or spectrogram examples only after the figures are prepared and labelled.
-\end{itemize}
+The held-out test set was used for objective comparison between each model output and the recorded Boss DS-1 target signal. The best-validation checkpoint is treated as the primary model for comparison, because this checkpoint represents the model state selected by validation performance rather than by the final training epoch.
+
+ESR was used as the main objective accuracy metric because it measures model error energy relative to the target signal energy. SNR and correlation were included as supporting metrics. In this context, SNR should be understood as an error-relative signal-to-noise ratio, where the “noise” is the prediction error rather than physical noise in the recording chain. Correlation provides a broad measure of waveform similarity, but it is not treated as a perceptual quality measure.
+
+\begin{table}[htbp]
+\centering
+\caption{Objective test-set metrics}
+\label{tab:objective-test-set-metrics}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llrrrrrr}
+\toprule
+\textbf{Model} & \textbf{Checkpoint} & \textbf{MSE} & \textbf{RMSE} & \textbf{MAE} & \textbf{ESR} & \textbf{SNR} & \textbf{Correlation} \\
+\midrule
+LSTM & Best validation & 0.00028735 & 0.016951 & 0.011324 & 0.021411 & 16.69 dB & 0.989516 \\
+LSTM & Final & 0.00028802 & 0.016971 & 0.011265 & 0.021462 & 16.68 dB & 0.989433 \\
+GRU & Best validation & 0.00048230 & 0.021961 & 0.015448 & 0.035938 & 14.44 dB & 0.981887 \\
+GRU & Final & 0.00050546 & 0.022482 & 0.015094 & 0.037663 & 14.24 dB & 0.981595 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The LSTM achieved the lowest test-set ESR, with a best-validation checkpoint ESR of 0.021411. The GRU achieved a higher best-validation checkpoint ESR of 0.035938. The same ordering is shown by the supporting metrics: the LSTM produced lower RMSE and MAE, higher error-relative SNR, and higher waveform correlation than the GRU on the held-out test material.
+
+The comparison between best-validation and final checkpoints also supports the use of validation-selected checkpoints for reporting. The LSTM final checkpoint was very close to its best-validation checkpoint, with only a small increase in ESR. The GRU showed a larger difference between the best-validation and final checkpoint results, indicating that the final model state was less favourable than the checkpoint selected by validation performance.
+
+\begin{table}[htbp]
+\centering
+\caption{Best-validation versus final-checkpoint ESR}
+\label{tab:best-validation-versus-final-checkpoint-esr}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Model} & \textbf{Best-validation ESR} & \textbf{Final ESR} & \textbf{Difference} \\
+\midrule
+LSTM & 0.021411 & 0.021462 & +0.000051 \\
+GRU & 0.035938 & 0.037663 & +0.001725 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure 4.3 shows an example waveform comparison between the target DS-1 recording and the model outputs. Figure 4.4 shows a spectrogram comparison for the same example region. These figures are included to illustrate the structure of the model outputs and residual differences, while the numerical metrics in Table 4.4 remain the primary objective results.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\emph{Insert one representative waveform comparison here. Additional waveform examples should be placed in Appendix C or a separate results appendix.}}}
+\caption{Example test-set waveform comparison}
+\label{fig:example-test-set-waveform-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\emph{Insert one representative spectrogram comparison here. Additional spectrograms should be placed in the appendix.}}}
+\caption{Example spectrogram comparison}
+\label{fig:example-spectrogram-comparison}
+\end{figure}
+
+Informal listening during plugin testing suggested that the LSTM output preserved slightly more high-frequency content than the GRU version and was marginally closer to the target recordings. However, the two models were mostly indistinguishable from the target material during informal monitoring. This observation is reported only as a practical listening note and should not be interpreted as a formal perceptual evaluation.
 
 \section{Architecture and Parameter Comparison}
+\label{sec:architecture-and-parameter-comparison}
 
-\begin{itemize}
-    \item Present a table comparing LSTM and GRU architecture settings: input size, output size, hidden size, recurrent layers, skip connection, and dense layer.
-    \item Report parameter counts: 2,617 parameters for the hidden-size-24 LSTM and 1,969 parameters for the hidden-size-24 GRU.
-    \item State that the GRU has 648 fewer parameters under the current matched configuration.
-    \item Explain the numerical difference briefly and factually: LSTM uses four gate groups while GRU uses three.
-\end{itemize}
+Both models used the same compact plugin-compatible recurrent architecture. Each model was implemented as a mono \texttt{SimpleRNN} with one recurrent layer, hidden size 24, a dense output stage, and a skip connection. The only architectural change in the comparison was the recurrent unit type: one model used an LSTM cell and the other used a GRU cell. The hidden size of 24 was retained for the final comparison so that both architectures could be evaluated under the same deployment constraint. The implications of this model-size constraint are discussed further in Chapter~5.
+
+\begin{table}[htbp]
+\centering
+\caption{Shared architecture settings used by both recurrent models.}
+\label{tab:shared_architecture}
+\begin{tabular}{lr}
+\hline
+Setting & Value \\
+\hline
+Model wrapper & \texttt{SimpleRNN} \\
+Input size & 1 \\
+Output size & 1 \\
+Hidden size & 24 \\
+Recurrent layers & 1 \\
+Skip connection & Enabled \\
+Bias & Enabled \\
+\hline
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:shared_architecture} shows the shared settings used for both exported models. These settings match the plugin-compatible model format used in the deployment stage. The recurrent unit type and resulting parameter count are shown separately in Table~\ref{tab:parameter_comparison}.
+
+\begin{table}[htbp]
+\centering
+\caption{Parameter comparison between the matched LSTM and GRU models.}
+\label{tab:parameter_comparison}
+\begin{tabular}{llrr}
+\hline
+Model & Unit Type & Parameters & Difference from LSTM \\
+\hline
+LSTM & LSTM & 2,617 & -- \\
+GRU  & GRU  & 1,969 & -648 \\
+\hline
+\end{tabular}
+\end{table}
+
+The GRU model used 648 fewer parameters than the LSTM model under the matched hidden-size-24 configuration. This difference is expected because the LSTM cell uses four gate groups, while the GRU cell uses three. The GRU was therefore the smaller model in this comparison, while the LSTM achieved the lower objective test-set error reported in Section~\ref{sec:objective_test_evaluation}.
 
 \section{Exported Model Artefacts}
+\label{sec:exported-model-artefacts}
 
-\begin{itemize}
-    \item Identify the exported JSON files used by the plugin.
-    \item Report model file sizes once confirmed.
-    \item State the plugin validation constraints: \texttt{SimpleRNN}, mono input/output, one recurrent layer, hidden size 24, LSTM or GRU unit type, and valid skip setting.
-    \item Document any model-loading failures or warnings if they appear during testing.
-\end{itemize}
+Both trained models were exported as JSON files for use in the C++ plugin. The exported artefacts included both the final model and the best-validation checkpoint for each architecture. The best-validation model files were used for the primary comparison because they correspond to the checkpoint selected by validation performance.
+
+\begin{table}[htbp]
+\centering
+\caption{Exported model artefacts}
+\label{tab:exported-model-artefacts}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+\textbf{Model} & \textbf{Artefact} & \textbf{Path} & \textbf{Approximate size} \\
+\midrule
+LSTM & Best-validation model & \texttt{Results/ds1-LSTM/model\_best.json} & 0.055 MB \\
+LSTM & Final model & \texttt{Results/ds1-LSTM/model.json} & 0.055 MB \\
+GRU & Best-validation model & \texttt{Results/ds1-GRU/model\_best.json} & 0.041 MB \\
+GRU & Final model & \texttt{Results/ds1-GRU/model.json} & 0.041 MB \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The plugin-side model loader was constrained to accept the model configuration used in this project: \texttt{SimpleRNN}, mono input and output, one recurrent layer, hidden size 24, either LSTM or GRU unit type, and a valid skip-connection setting. Under these constraints, the exported LSTM and GRU models loaded successfully during plugin testing. No model-loading failures were observed during the final plugin tests.
 
 \section{Plugin Runtime Observations}
+\label{sec:plugin-runtime-observations}
 
-\begin{itemize}
-    \item Report the plugin formats successfully built and tested, such as AU, VST3, or Standalone.
-    \item Report the tested DAW or host, buffer size, sample rate, and machine configuration.
-    \item Describe observed behaviour for Drive, Level, Bypass, and Model switching.
-    \item Report whether hidden-state reset on model switching avoided audible switching artefacts.
-    \item Record any CPU, latency, or glitch observations only after they are measured.
-\end{itemize}
+The exported models were tested in the deployed JUCE and RTNeural plugin. The plugin was built and tested as VST3 and AU. Runtime testing was carried out in Ableton Live 12 and Cubase 12 on an M2 Max MacBook Pro with 32 GB unified memory running the current macOS Tahoe installation used for the project.
+
+The plugin exposed the main controls required for the research artefact: Drive, Level, Bypass, and Model selection. Both LSTM and GRU models loaded correctly and could be selected from within the plugin. No model-loading errors, control-related artefacts, or audible artefacts during knob movement were observed during the final tests.
+
+Model switching between LSTM and GRU also behaved correctly in the tested hosts. The hidden state was reset during switching, and no switching artefacts were observed during the reported tests. This supports the plugin’s use as a practical comparison artefact for the two exported recurrent models.
+
+No formal CPU benchmark was completed. Therefore, this chapter does not report a measured CPU percentage or computational load figure. The plugin did not introduce additional algorithmic latency, because inference was performed sample-by-sample inside the host audio callback and no explicit look-ahead or additional buffering stage was added. This statement should not be read as a measured end-to-end latency benchmark.
 
 \section{Sample-Rate Handling Result}
+\label{sec:sample-rate-handling-result}
 
-\begin{itemize}
-    \item State clearly whether the 44.1~kHz round-trip resampling path has been implemented by the time results are finalised.
-    \item If implemented, report tests at 44.1~kHz, 48~kHz, and 96~kHz.
-    \item If not implemented, report this as a current limitation of the plugin artefact and avoid claiming sample-rate-independent operation.
-    \item Explain that non-44.1~kHz host sessions require conversion because the models were trained at 44.1~kHz.
-\end{itemize}
+The LSTM and GRU models were trained and evaluated at 44.1 kHz. As a result, correct operation in host sessions running at other sample rates requires conversion from the host sample rate to the model sample rate and back again after model processing.
+
+At the time the results were finalised, the round-trip 44.1 kHz resampling path for non-44.1 kHz host sessions had not been completed and verified. The plugin artefact should therefore be reported as a 44.1 kHz implementation rather than as a sample-rate-independent commercial plugin. Tests at 48 kHz and 96 kHz are not reported here because the required sample-rate conversion stage was not yet available for final verification.
+
+This is an important limitation of the current artefact. The trained models are valid for the captured 44.1 kHz modelling condition, but additional engineering work is required before the plugin can be claimed to operate correctly across arbitrary host sample rates.
 
 \section{Summary of Results}
+\label{sec:summary-of-results}
 
-\begin{itemize}
-    \item Summarise the key measured difference between GRU and LSTM.
-    \item State which architecture appears more efficient under the current measurements.
-    \item State whether accuracy differences are large enough to matter according to the selected objective metrics.
-    \item Transition to Chapter 5, where these findings are interpreted in relation to the research question and literature.
-\end{itemize}
+The results show a clear objective difference between the two recurrent architectures under the matched hidden-size-24 configuration. The LSTM achieved the lower held-out test ESR, lower RMSE and MAE, higher error-relative SNR, and higher waveform correlation. The GRU used fewer parameters and stopped much earlier during training, but its validation and test-set error remained higher than the LSTM.
+
+The exported JSON artefacts were successfully loaded into the JUCE and RTNeural plugin, and the plugin operated correctly in the tested VST3 and AU host environments. Drive, Level, Bypass, and Model switching behaved as expected, and no switching or knob-movement artefacts were observed during the final tests. However, no formal CPU benchmark was completed, and the non-44.1 kHz resampling path was not yet implemented and verified.
+
+Overall, the measured results indicate that the LSTM provided the stronger objective emulation accuracy, while the GRU provided the smaller model. Chapter 5 interprets this accuracy-efficiency trade-off in relation to the research question, the hidden-size-24 constraint, and the practical requirements of real-time neural audio plugin deployment.
