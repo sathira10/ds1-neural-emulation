@@ -1,15 +1,15 @@
 \chapter{Training Loss Curves}
 \label{app:loss-curves}
 
-This appendix collects the full-resolution training and evaluation figures referenced in Chapter~4. These plots are provided here so that the main results chapter can remain readable while still preserving the detailed visual evidence used to interpret the model comparison.
+This appendix collects the full-resolution training and evaluation figures referenced in Chapter~4. They live here rather than in the main chapter so that Chapter~4 stays readable while the detailed visual evidence behind the model comparison remains available.
 
-The material in this appendix serves two purposes. First, it documents the detailed optimisation behaviour that underpins the summary statistics reported in Section~4.2. Second, it provides additional qualitative examples for the held-out test material so that the waveform- and spectrum-level differences between the two recurrent models can be inspected at a larger scale than is practical in the main chapter.
+Two things motivated putting them here. The plots document the optimisation behaviour that the summary statistics in Section~4.2 are built from, and they also offer additional qualitative examples from the held-out test material at a scale the main chapter cannot accommodate.
 
 \section{Per-Model Training Curves}
 
-Figures~\ref{fig:appendix-lstm-loss-curve} and~\ref{fig:appendix-gru-loss-curve} separate the two training runs into full-page views. Presented individually, the curves make it easier to inspect the stability of the validation trajectory, the point at which improvement begins to slow, and the length of the post-best-checkpoint region before early stopping terminates training.
+Figures~\ref{fig:appendix-lstm-loss-curve} and~\ref{fig:appendix-gru-loss-curve} separate the two training runs into full-page views. Seen on their own, the curves make it easier to follow the stability of the validation trajectory, judge where improvement begins to slow, and see how long training continued past the best checkpoint before early stopping cut it off.
 
-The LSTM curve shows a longer optimisation process with continued gradual validation improvement into the later stages of training, consistent with the lower best-validation loss reported in Table~4.2. By contrast, the GRU curve flattens earlier and reaches its best checkpoint sooner, which supports the interpretation in Chapter~4 that the GRU converged faster but to a less favourable final validation level under the matched training configuration.
+The LSTM curve runs noticeably longer, with gradual validation improvement still appearing into the later stages of training. That is consistent with the lower best-validation loss reported in Table~4.2. The GRU curve flattens sooner and reaches its best checkpoint earlier, which lines up with the reading in Chapter~4: the GRU converges faster but settles at a less favourable validation level under the matched training configuration.
 
 \begin{figure}[htbp]
   \centering
@@ -27,9 +27,9 @@ The LSTM curve shows a longer optimisation process with continued gradual valida
 
 \section{Checkpoint Comparison}
 
-Figure~\ref{fig:appendix-best-vs-final-esr} expands the checkpoint comparison summarised in Table~4.4. Its purpose is to make the reporting decision transparent: the best-validation checkpoint is treated as the primary model state because it represents the parameter set selected by validation performance rather than the arbitrary final epoch reached before early stopping halted training.
+Figure~\ref{fig:appendix-best-vs-final-esr} expands the checkpoint comparison summarised in Table~4.4. The intent is to make the reporting decision transparent: the best-validation checkpoint is treated as the primary model state because it represents the parameter set chosen by validation performance, not the arbitrary final epoch reached before early stopping halted training.
 
-The figure also makes the asymmetry between the two architectures easier to see. The LSTM changes very little between the best-validation and final checkpoints, whereas the GRU exhibits a visibly larger increase in ESR at the final checkpoint. This reinforces the conclusion that validation-selected checkpoints are especially important for the GRU under the present training regime.
+The figure also makes the asymmetry between the two architectures clearer. The LSTM barely shifts between its best-validation and final checkpoints. The GRU, on the other hand, shows a visibly larger increase in ESR at the final checkpoint, which suggests that validation-selected checkpoints matter more for the GRU under this training regime.
 
 \begin{figure}[htbp]
   \centering
@@ -40,11 +40,11 @@ The figure also makes the asymmetry between the two architectures easier to see.
 
 \section{Waveform and Spectral Detail}
 
-The remaining figures provide supplementary qualitative evidence for the objective results reported in Section~4.3. They are not intended to replace the numerical metrics, but to show how the remaining model errors appear in the time and time--frequency domains across more than one excerpt from the held-out test material.
+The remaining figures provide qualitative backing for the objective results reported in Section~4.3. They are not meant to replace the numerical metrics. Instead, they show how the residual model errors appear in the time and time--frequency domains across more than one excerpt from the held-out test material.
 
-Figures~\ref{fig:appendix-waveform-examples} and~\ref{fig:appendix-spectrogram-examples} extend the single example shown in Chapter~4 by presenting additional waveform and spectrogram views. These examples help distinguish broad agreement in signal shape from the smaller residual differences that remain after training, particularly in transient regions and higher-frequency content.
+Figures~\ref{fig:appendix-waveform-examples} and~\ref{fig:appendix-spectrogram-examples} extend the single example shown in Chapter~4 with additional waveform and spectrogram views. These help separate broad agreement in signal shape from the smaller residual differences that remain after training, particularly around transients and at higher frequencies.
 
-Figures~\ref{fig:appendix-residual-waveform} and~\ref{fig:appendix-spectral-error} focus directly on the error signal. The residual waveform plots show where the model outputs diverge from the target recording in the time domain, while the spectral-error plot summarises how those differences are distributed across frequency. Read together, these figures provide a fuller visual account of why the LSTM achieved the lower ESR on the held-out test set.
+Figures~\ref{fig:appendix-residual-waveform} and~\ref{fig:appendix-spectral-error} look at the error signal directly. The residual waveform plots show where the model outputs diverge from the target recording in the time domain, while the spectral-error plot summarises how those differences are distributed across frequency.
 
 \begin{figure}[htbp]
   \centering

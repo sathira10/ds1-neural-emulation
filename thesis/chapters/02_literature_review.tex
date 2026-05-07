@@ -3,15 +3,15 @@
 
 \section{Chapter Overview}
 
-This chapter establishes the technical and musical context for modelling the Boss DS-1 as a nonlinear audio system. It moves from established virtual analog approaches to data-driven neural modelling, explains why recurrent architectures are appropriate for distortion circuits with memory-dependent behaviour, and positions the research gap for a direct GRU versus LSTM comparison under matched recording, training, and deployment conditions.
+This chapter establishes the technical and musical context for modelling the Boss DS-1 as a nonlinear audio system, tracing the path from established virtual analog approaches to data-driven neural modelling. It explains why recurrent architectures suit distortion circuits with memory-dependent behaviour and positions the research gap behind the GRU versus LSTM comparison at the heart of this project.
 
 \section{Analog Distortion}
 
-The pursuit of digitally emulating analog audio hardware, a discipline known as virtual analog (VA) modelling, is driven by a persistent demand for the sonic character of classic equipment. Terms such as ``warmth'', ``richness'', ``character'', and ``organic feel'' are imprecise, but they refer to audible results of nonlinear electronic components operating near or beyond their intended linear regions. When an audio signal passes through a vacuum tube, transistor, or diode in this region, the device introduces new frequency content that was not present in the original signal. This phenomenon is known as \textbf{harmonic distortion}, and it is central to the sound commonly associated with analog equipment.
+Digitally emulating analog audio hardware, a discipline known as virtual analog (VA) modelling, has persisted because listeners keep reaching for the sonic character of classic equipment. Terms like ``warmth'', ``richness'', ``character'', and ``organic feel'' are vague, but they all point to the audible result of nonlinear electronic components pushed near or beyond their intended linear regions. When an audio signal passes through a vacuum tube, transistor, or diode operating in that region, the device introduces new frequency content not present in the original signal: \textbf{harmonic distortion}.
 
-This sound, now a cornerstone of modern guitar music, was not originally a deliberate invention. It emerged from the limitations and failures of early amplification technology. Its origins can be traced to the 1950s, when musicians discovered that overdriving amplifiers produced an unintentionally powerful fuzzy sound. The 1951 recording of \textit{Rocket 88} is often cited in this history, as a damaged amplifier speaker cone produced a novel distorted tone that became part of the record's identity. After this, musicians began actively seeking this raw sound, including by deliberately pushing or damaging their equipment.
+None of this was planned. The sound that became a cornerstone of modern guitar music grew out of the limitations and outright failures of early amplification technology. Its origins are usually traced to the 1950s, when musicians discovered that overdriving amplifiers produced an unintentionally powerful, buzzing quality. The 1951 recording of \textit{Rocket 88} is often cited here: a damaged speaker cone produced a distorted tone that ended up defining the record's character, and musicians quickly started chasing that quality deliberately, even damaging their own equipment to get it.
 
-The commercialization of this effect in the 1960s was marked by the Gibson Maestro FZ-1 Fuzz-Tone, shown in Figure~\ref{fig:maestro-fz1}. Its later association with The Rolling Stones helped demonstrate that distortion could be treated as a controllable musical effect rather than merely a technical fault. This encouraged manufacturers to develop a wide range of distortion devices that shaped the sound of later rock, punk, metal, and alternative music.
+The commercialization of this effect in the 1960s was marked by the Gibson Maestro FZ-1 Fuzz-Tone, shown in Figure~\ref{fig:maestro-fz1}. Its association with The Rolling Stones made clear that distortion was a controllable musical effect, not a technical fault, and manufacturers followed with a wide range of devices that would come to define the sound of rock, punk, metal, and alternative music for decades.
 
 \begin{figure}[htbp]
     \centering
@@ -27,11 +27,11 @@ The specific character of a distortion effect is determined by the blend of harm
     \item \textbf{Odd-order harmonics} are integer multiples such as three, five, and seven times the fundamental frequency. They tend to sound harsher or grittier, contributing to the richness and depth of many distortion sounds. The symmetric clipping of back-to-back diodes is a common design that mainly generates odd-order harmonics.
 \end{itemize}
 
-Beyond simple harmonic generation, the perceived warmth of analog equipment arises from subtle imperfections such as transformer hysteresis, dynamic compression, and circuit sag under heavy load. It is this complex and dynamic interplay of nonlinearities that gives analog distortion its sonic identity, and it has proven difficult to capture perfectly in the digital domain.
+Beyond simple harmonic generation, the perceived warmth of analog equipment also comes from subtler imperfections: transformer hysteresis, dynamic compression, circuit sag under heavy load. Getting all of this right in the digital domain has proven genuinely difficult.
 
 \section{The Boss DS-1 as a Modelling Target}
 
-To frame the emulation problem concretely, this dissertation focuses on the Boss DS-1, shown in Figure~\ref{fig:boss-ds1-pedal}. Released in 1978, the DS-1 is a widely used distortion pedal whose circuit combines several familiar gain, clipping, and filtering stages into a recognisable high-gain guitar sound.
+This dissertation focuses on the Boss DS-1, shown in Figure~\ref{fig:boss-ds1-pedal}. Released in 1978, it is a widely used distortion pedal whose circuit combines several gain, clipping, and filtering stages into a recognisable high-gain guitar sound.
 
 \begin{figure}[htbp]
     \centering
@@ -40,7 +40,7 @@ To frame the emulation problem concretely, this dissertation focuses on the Boss
     \label{fig:boss-ds1-pedal}
 \end{figure}
 
-The DS-1 circuit, shown in Figure~\ref{fig:boss-ds1-circuit}, can be understood as a sequence of four main stages:
+The DS-1 circuit, shown in Figure~\ref{fig:boss-ds1-circuit}, breaks down into four main stages:
 
 \begin{figure}[htbp]
     \centering
@@ -59,37 +59,34 @@ The DS-1 circuit, shown in Figure~\ref{fig:boss-ds1-circuit}, can be understood 
     \item \textbf{Tone and level stage}: a passive tone circuit and output stage that reshape the clipped signal, including the familiar mid-scooped balance associated with the pedal.
 \end{enumerate}
 
-Taken together, these stages make the DS-1 more complex than a simple static clipping curve, which is why it provides a useful target for digital emulation.
 
 \section{Virtual Analog Modelling Approaches}
 
 \subsection{White-Box Circuit Modelling}
 
-Historically, virtual analog modelling has been approached through two broad paradigms: white-box and black-box modelling. Each represents a different philosophy and involves trade-offs between accuracy, interpretability, and computational feasibility.
+Virtual analog modelling has historically split into two broad paradigms: white-box and black-box. The distinction is one of philosophy as much as technique, and each approach carries real trade-offs between accuracy, interpretability, and computational cost.
 
-White-box, or physical, modelling is based on the idea that a sufficiently complete mathematical description of an analog circuit can be solved digitally to reproduce its output for a given input. The process begins with a detailed circuit schematic. Using principles such as Kirchhoff's current and voltage laws, the circuit is translated into a system of nonlinear \textbf{ordinary differential equations (ODEs)}. Software such as \textbf{SPICE} automates this process using techniques such as Modified Nodal Analysis (MNA) to construct and solve the system of equations. Other white-box techniques include Wave Digital Filters (WDFs) and state-space models, which provide different formalisms for representing circuit behaviour.
+White-box, or physical, modelling starts from the premise that a sufficiently complete mathematical description of a circuit can be solved digitally to reproduce its output. The process begins with a detailed circuit schematic; using Kirchhoff's current and voltage laws, the circuit is translated into a system of nonlinear \textbf{ordinary differential equations (ODEs)}. Software such as \textbf{SPICE} automates this step using Modified Nodal Analysis (MNA). Other white-box techniques include Wave Digital Filters (WDFs) and state-space models, each offering a different formalism for the same goal.
 
-The primary advantage of white-box modelling is its potential accuracy and interpretability. In principle, an accurate circuit model can explain the contribution of each component and reproduce the device under a wide range of operating conditions. However, this approach has two important limitations for real-time audio processing.
+White-box modelling's appeal is interpretability: a good circuit model can, in principle, explain the contribution of each component and reproduce the device across a wide range of conditions. For real-time audio, though, two practical problems arise.
 
-First, the computational cost can be prohibitive. Distortion circuits contain nonlinear elements, so their systems of equations generally cannot be solved directly at each sample. The simulator must use an iterative numerical method, such as Newton--Raphson iteration, to converge on a solution. Performing this process for every audio sample is expensive, and the sequential nature of the computation limits parallelization. A detailed SPICE simulation may therefore run much slower than real time.
+First, the computational cost can be prohibitive. Distortion circuits contain nonlinear elements, so their systems of equations cannot generally be solved in closed form at each sample. An iterative numerical method such as Newton--Raphson iteration is needed to converge on a solution, and running that at every sample is expensive; the sequential nature of the computation also resists parallelization. A detailed SPICE simulation can easily run far slower than real time.
 
-Second, white-box modelling requires detailed and accurate knowledge of the circuit and its components. The accuracy of the simulation is limited by the quality of the component models and parameter values supplied to it. Real analog components vary across manufacturing tolerances and age, so a model based only on ideal datasheet values may not capture the behaviour of a specific physical unit. To perfectly model an imperfect analog device, one would first need to characterize those imperfections, which is often impractical.
+Second, the approach depends on detailed and accurate knowledge of the circuit. The simulation is only as good as the component models and parameter values supplied to it. Real components vary across manufacturing tolerances and age, so a model built on ideal datasheet values may behave quite differently from a specific physical unit, and characterizing those individual imperfections is rarely practical.
 
 \subsection{Traditional Black-Box and Signal Processing Methods}
 
 Black-box modelling treats the device as an input-output system rather than deriving full circuit equations. For a guitar pedal, the dry signal becomes the input and the recorded pedal output becomes the target, avoiding many of the practical burdens of white-box modelling \cite{martinez_ramirez_deep_2020,wright_real-time_2019}.
 
-The simplest version is static waveshaping, often combined with filters before and after the nonlinearity. Yeh et al. describe this as a computationally efficient filter--distortion--filter simplification of analog pedal behaviour \cite{yeh_simplified_2007}. Its limitation is that it is memoryless, whereas real pedals such as the DS-1 respond to recent signal history as well as the current sample.
+The simplest version is static waveshaping, often combined with filters before and after the nonlinearity. Yeh et al. describe this as a computationally efficient filter--distortion--filter simplification of analog pedal behaviour \cite{yeh_simplified_2007}. The problem is that it is memoryless: real pedals such as the DS-1 respond to recent signal history, not just the current sample.
 
-Linear convolution works well for linear time-invariant systems such as cabinets and EQ curves, but not for a nonlinear distortion pedal. More expressive block-oriented models, including Wiener, Hammerstein, and Wiener--Hammerstein structures, combine filters and nonlinearities more flexibly, but they still assume a simplified signal path \cite{wright_real-time_2019}. For the DS-1, whose sound depends on interacting gain, filtering, clipping, and tone stages, this remains restrictive and motivates neural black-box modelling.
+Linear convolution works well for linear time-invariant systems such as cabinets and EQ curves, but not for a nonlinear distortion pedal. More expressive block-oriented models, including Wiener, Hammerstein, and Wiener--Hammerstein structures, combine filters and nonlinearities more flexibly, but still assume a simplified signal path \cite{wright_real-time_2019}. A pedal with the DS-1's interacting gain, filtering, clipping, and tone stages pushes beyond what these structures handle cleanly.
 
 \section{Deep Learning for Nonlinear Audio Systems}
 
-Deep learning extends black-box modelling by replacing a hand-designed structure with a trainable function learned from paired recordings. Here, the dry guitar signal is the input and the Boss DS-1 recording is the target. The model is not given an explicit circuit description; it learns the mapping directly from data.
+Deep learning extends black-box modelling by replacing a hand-designed structure with a trainable function learned from paired recordings. Here, the dry guitar signal is the input and the Boss DS-1 recording is the target. The model receives no explicit circuit description; it learns the input-to-output mapping directly from data. Martínez Ramírez et al. describe this as an end-to-end black-box strategy that reduces the need for detailed prior knowledge of the processor being modelled \cite{martinez_ramirez_deep_2020}. The tradeoff is interpretability: a learned function is harder to inspect than a circuit simulation.
 
-This is useful when the goal is faithful behaviour rather than full circuit explanation. Martínez Ramírez et al. describe deep learning for audio effects as an end-to-end black-box strategy that reduces the need for detailed prior knowledge of the processor being modelled \cite{martinez_ramirez_deep_2020}. The main trade-off is flexibility versus interpretability.
-
-Recent work supports this approach. Damskägg et al. showed that WaveNet-style models can emulate distortion pedals including the DS-1 in real time, while Wright et al. showed that compact recurrent models can achieve strong accuracy at lower cost than larger convolutional systems \cite{wright_real-time_2019}. Practical tools such as GuitarLSTM and SmartGuitarAmp further demonstrate a viable path from Python training to JUCE-based deployment \cite{GuitarML_GuitarLSTM,GuitarML_SmartGuitarAmp}.
+Damskägg et al. showed that WaveNet-style models can emulate distortion pedals including the DS-1 in real time, while Wright et al. showed that compact recurrent models can achieve strong accuracy at lower cost than larger convolutional systems \cite{wright_real-time_2019}. Practical tools such as GuitarLSTM and SmartGuitarAmp further demonstrate a viable path from Python training to JUCE-based deployment \cite{GuitarML_GuitarLSTM,GuitarML_SmartGuitarAmp}.
 
 \section{Sequence Modelling and Recurrent Neural Networks for Audio Emulation}
 
@@ -97,7 +94,7 @@ Audio is a time sequence, so nonlinear systems with memory cannot be described o
 
 Recurrent neural networks are designed for this problem. They process one time step at a time while maintaining an internal state, so the predicted output depends on the current input, previous state, and learned parameters \cite{wright_real-time_2019}. For a distortion pedal, that hidden state may encode recent level, envelope, or spectral context.
 
-RNNs are also attractive for plugins because they can be causal, allowing sample-by-sample processing without look-ahead if the hidden state is preserved across audio blocks. Their main drawback is training difficulty, which is usually addressed with segmented audio and truncated back-propagation through time.
+For plugin deployment, RNNs have a practical advantage: they are naturally causal and can process audio sample by sample without look-ahead, as long as the hidden state is preserved across audio blocks. Training is harder than for feedforward networks, and is typically handled with segmented audio and truncated back-propagation through time.
 
 \section{LSTM and GRU Architectures}
 
@@ -105,34 +102,34 @@ Basic recurrent networks can be difficult to train over longer sequences. LSTM a
 
 \subsection{Long Short-Term Memory}
 
-The Long Short-Term Memory architecture was introduced to improve how recurrent networks preserve information over time \cite{hochreiter_long_1997}. Its gated hidden and cell-state structure can be valuable for nonlinear audio tasks involving filtering, envelope dependence, and level-dependent behaviour. Wright et al. reported strong LSTM performance in real-time black-box modelling, and Cassidy and De Sena also used an LSTM-RNN in perceptual evaluation of high-gain amplifier models \cite{wright_real-time_2019,cassidy_perceptual_2023}. Its main drawback is cost: for the same hidden size, an LSTM usually requires more parameters and computation than a GRU.
+The Long Short-Term Memory architecture was introduced to improve how recurrent networks preserve information over time \cite{hochreiter_long_1997}. Its gated hidden and cell-state structure suits nonlinear audio tasks involving filtering, envelope dependence, and level-dependent behaviour. Wright et al. reported strong LSTM performance in real-time black-box modelling, and Cassidy and De Sena used an LSTM-RNN in perceptual evaluation of high-gain amplifier models \cite{wright_real-time_2019,cassidy_perceptual_2023}. The cost, literally, is higher: for the same hidden size, an LSTM typically requires more parameters and compute than a GRU.
 
 \subsection{Gated Recurrent Unit}
 
-The Gated Recurrent Unit is a simpler gated recurrent architecture \cite{cho_learning_2014}. Because it uses fewer gates than an LSTM, a GRU with the same hidden size usually has fewer parameters and lower computational cost. The trade-off is that it may regulate temporal information less flexibly in some tasks.
+The Gated Recurrent Unit is a simpler gated recurrent architecture \cite{cho_learning_2014}. Because it uses fewer gates than an LSTM, a GRU with the same hidden size usually has fewer parameters and lower computational cost, though it may have less flexibility in how it regulates temporal information.
 
-This makes a direct GRU versus LSTM comparison useful. The question is not which architecture is universally better, but which offers the best accuracy-to-efficiency balance for this captured DS-1 task.
+The relevant question for this project is not which architecture is universally better, but which gives the best accuracy-to-efficiency balance on this specific DS-1 task.
 
 \section{Real-Time Deployment and Neural Inference}
 
-A trained model is only useful here if it can be deployed in real time. Training can happen in Python, but a DAW plugin must load the trained model and run forward inference in C++.
+Training can happen in Python, but a DAW plugin must load the trained model and run forward inference in C++. That shift from research environment to real-time system introduces hard constraints.
 
-Real-time audio also imposes strict constraints: the audio thread must avoid blocking operations such as allocation, file access, and locks. Chowdhury presents RTNeural as a lightweight C++ inference library for hard real-time systems, making it directly relevant to the present JUCE-based plugin workflow \cite{chowdhury_rtneural_2021}.
+Real-time audio threads must avoid blocking operations: allocation, file access, locks. Chowdhury presents RTNeural as a lightweight C++ inference library for hard real-time systems, making it directly relevant to the JUCE-based plugin workflow used here \cite{chowdhury_rtneural_2021}.
 
-This deployment context also affects architectural judgement. A model that is accurate offline but too slow or awkward in a plugin does not fully answer the research question, whereas a compact model that behaves reliably in real time may be preferable even if its test error is only slightly worse.
+Deployment constraints also feed back into architectural choice. A model that performs well offline but cannot run cleanly in a plugin does not fully answer the research question. A slightly less accurate model that works reliably in real time may simply be more useful.
 
 \section{Evaluation of Neural Audio Models}
 
-Evaluation of neural audio models usually begins with objective error metrics. In this project, Error-to-Signal Ratio (ESR) is the main measure because it compares prediction-error energy with target-signal energy rather than treating error only in absolute terms.
+The primary metric in this project is Error-to-Signal Ratio (ESR), which compares prediction-error energy with target-signal energy rather than treating error in purely absolute terms.
 
 ESR is widely used in neural virtual analog work, and some training pipelines pair it with pre-emphasis so that the loss pays more attention to high-frequency content important to distortion \cite{wright_real-time_2019,cassidy_perceptual_2023}. A DC term is also useful because a learned offset can reduce headroom and indicate low-frequency bias \cite{wright_real-time_2019}.
 
-These metrics still have limits: lower ESR does not automatically mean that listeners will hear the model as closer or prefer it. Stronger perceptual claims would require formal listening tests such as ABX or MUSHRA-style evaluation \cite{ITU_BS1534_3,cassidy_perceptual_2023}.
+Lower ESR does not automatically mean that listeners will hear the model as more accurate or prefer it. Stronger perceptual claims would require formal listening tests such as ABX or MUSHRA-style evaluation \cite{ITU_BS1534_3,cassidy_perceptual_2023}.
 
 \section{Research Gap and Positioning of This Study}
 
-The literature shows that distortion can be modelled in several ways. White-box methods offer interpretability but require detailed circuit knowledge and can be computationally expensive. Traditional black-box methods can be efficient, but they usually depend on simplifying assumptions about signal flow. Deep neural networks offer a more flexible data-driven alternative learned from paired recordings \cite{yeh_simplified_2007,martinez_ramirez_deep_2020}.
+White-box methods offer interpretability but require detailed circuit knowledge and can be computationally expensive. Black-box methods sidestep that requirement but typically rely on simplifying assumptions about signal flow. Deep neural networks learned from paired recordings offer a more flexible data-driven path \cite{yeh_simplified_2007,martinez_ramirez_deep_2020}.
 
-Neural virtual analog research already provides important precedents. Damskägg et al. demonstrated real-time WaveNet-style modelling of pedals including the DS-1, Wright et al. showed that compact recurrent networks can model nonlinear audio devices efficiently, and Martínez Ramírez et al. positioned these developments within a broader deep-learning audio-effects framework \cite{wright_real-time_2019,martinez_ramirez_deep_2020}. Cassidy and De Sena further show that objective accuracy should be considered alongside perceptual questions \cite{cassidy_perceptual_2023}.
+There are useful precedents in the neural virtual analog literature. Damskägg et al. demonstrated real-time WaveNet-style modelling of pedals including the DS-1, Wright et al. showed that compact recurrent networks can model nonlinear audio devices efficiently, and Martínez Ramírez et al. situated these developments within a broader deep-learning audio-effects framework \cite{wright_real-time_2019,martinez_ramirez_deep_2020}. Cassidy and De Sena further show that objective accuracy should be considered alongside perceptual questions \cite{cassidy_perceptual_2023}.
 
-The gap addressed here is narrower and practice-based: a controlled GRU versus LSTM comparison on one physical Boss DS-1 using matched recording, training, evaluation, and deployment conditions. This project contributes not a new architecture, but a documented end-to-end workflow built around that focused target: a matched dry/wet dataset, trained models, exported JSON weights, and a JUCE/RTNeural plugin \cite{candy_practice-based_2018,batty_research_2024}.
+What is missing from the literature is a controlled GRU versus LSTM comparison on a single physical device under matched recording, training, evaluation, and deployment conditions. This project does not contribute a new architecture; it contributes a documented end-to-end workflow built around that focused question: a matched dry/wet dataset, trained models, exported JSON weights, and a JUCE/RTNeural plugin \cite{candy_practice-based_2018,batty_research_2024}.

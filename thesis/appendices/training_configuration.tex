@@ -1,11 +1,11 @@
 \chapter{Training Configuration}
 \label{appendix:training-configuration}
 
-This appendix documents the model training configuration used for the Boss DS-1 neural emulation experiment. The training setup was implemented in Python using the CoreAudioML-style pipeline included in the project repository. The purpose of this configuration was to train compact recurrent models that could be exported from the Python environment and used later in the JUCE/RTNeural plugin.
+This appendix documents the model training configuration used for the Boss DS-1 neural emulation experiment. The setup was implemented in Python on top of the CoreAudioML-style pipeline shipped in the project repository. The aim was to train compact recurrent models that could later be exported from Python and consumed by the JUCE/RTNeural plugin.
 
 \section{Training Environment}
 
-Training was carried out using a Python-based workflow with PyTorch, NumPy, SciPy, Pandas, Matplotlib, TensorBoard-related logging utilities, and the CoreAudioML project modules. The main training notebook imported the following internal modules:
+Training ran in a Python workflow built around PyTorch, NumPy, SciPy, Pandas, Matplotlib, TensorBoard-related logging utilities, and the CoreAudioML project modules. The main training notebook imported these internal modules:
 
 \begin{itemize}
   \item \texttt{CoreAudioML.miscfuncs}
@@ -14,13 +14,13 @@ Training was carried out using a Python-based workflow with PyTorch, NumPy, SciP
   \item \texttt{CoreAudioML.networks}
 \end{itemize}
 
-The notebook was designed so that it could run locally or in Google Colab. When executed in Colab, the repository could be cloned and the working directory changed to the \texttt{model/} folder. When executed locally, the notebook used the existing local working directory.
+The notebook was set up to run locally or in Google Colab. In Colab, the repository would be cloned and the working directory changed to the \texttt{model/} folder. Run locally, it used the existing working directory.
 
-The training script selected CUDA automatically when a compatible GPU was available. Otherwise, it fell back to CPU execution. A fixed random seed of 0 was used for both PyTorch and NumPy to support more consistent training behaviour between runs.
+The script selected CUDA automatically when a compatible GPU was available, falling back to CPU otherwise. A fixed random seed of 0 was used for both PyTorch and NumPy to keep training behaviour reasonably consistent between runs.
 
 \section{Dataset Loading}
 
-The dataset was loaded from the \texttt{model/Data/} directory. Three dataset subsets were used:
+The dataset was loaded from \texttt{model/Data/}. Three subsets were used:
 
 \begin{itemize}
   \item \texttt{Data/train/} for model weight optimisation.
@@ -28,13 +28,13 @@ The dataset was loaded from the \texttt{model/Data/} directory. Three dataset su
   \item \texttt{Data/test/} for held-out final evaluation.
 \end{itemize}
 
-The device name used in the training configuration was \texttt{ds1}. The corresponding files were loaded as matched input and target audio pairs for each subset. The dry signal was used as the model input, and the Boss DS-1 processed signal was used as the model target.
+The device name in the training configuration was \texttt{ds1}. The matching files were loaded as input/target audio pairs for each subset, with the dry signal as the model input and the Boss DS-1 processed signal as the target.
 
-Training audio was framed into fixed-length segments of 22,050 samples. At the project sample rate, this corresponds to 0.5 seconds of audio per training segment. The validation and test sets were loaded without the same framing step so that they could be evaluated over longer continuous chunks.
+Training audio was framed into fixed-length segments of 22,050 samples, which is 0.5 seconds of audio at the project sample rate. The validation and test sets were loaded without that framing step so they could be evaluated over longer continuous chunks.
 
 \section{Model Configurations}
 
-Two recurrent model configurations were trained under matched conditions: one LSTM model and one GRU model. Both used the same overall SimpleRNN structure so that the recurrent cell type was the main architectural difference.
+Two recurrent model configurations were trained under matched conditions, one LSTM and one GRU. Both used the same overall SimpleRNN structure, so the recurrent cell type was the main architectural difference between them.
 
 \begin{table}[htbp]
   \centering
@@ -56,11 +56,11 @@ Two recurrent model configurations were trained under matched conditions: one LS
   \end{tabular}
 \end{table}
 
-The LSTM model used \texttt{unit\_type = LSTM}, while the GRU model used \texttt{unit\_type = GRU}. In both cases, the recurrent layer was followed by a dense output layer that mapped the hidden representation back to a mono audio output. The enabled skip connection allowed the input signal to pass directly toward the output stage, while the recurrent model learned the nonlinear transformation required to approximate the DS-1 response.
+The LSTM model used \texttt{unit\_type = LSTM}; the GRU model used \texttt{unit\_type = GRU}. In both cases the recurrent layer fed a dense output layer that mapped the hidden representation back to a mono audio output. The skip connection let the input signal pass straight through to the output stage while the recurrent model learned the nonlinear transformation needed to approximate the DS-1 response.
 
 \section{Training Hyperparameters}
 
-The same training hyperparameters were used for both recurrent models. These values are listed in Table~\ref{tab:appendix-training-hyperparameters}.
+Both recurrent models used the same training hyperparameters, listed in Table~\ref{tab:appendix-training-hyperparameters}.
 
 \begin{table}[htbp]
   \centering
@@ -89,11 +89,11 @@ The same training hyperparameters were used for both recurrent models. These val
   \end{tabular}
 \end{table}
 
-The initial recurrent warm-up length was used so that the hidden state could become conditioned by the current audio segment before the main loss calculation was applied. This is important for recurrent audio models because the early output of a segment can otherwise be affected by an artificially reset hidden state rather than by the learned behaviour of the target device.
+The initial recurrent warm-up length lets the hidden state condition itself on the current audio segment before the main loss calculation kicks in. This matters for recurrent audio models because the early output of a segment can otherwise be dominated by an artificially reset hidden state rather than by the learned behaviour of the target device.
 
 \section{Loss Functions}
 
-Training used a weighted loss made from an error-to-signal component and a DC-offset component. The main loss setting was:
+Training used a weighted loss combining an error-to-signal component and a DC-offset component:
 
 \begin{itemize}
   \item \texttt{ESRPre}: 0.75
@@ -106,31 +106,31 @@ The pre-emphasis filter configuration was:
 [-0.85, 1]
 \end{verbatim}
 
-The ESR-based loss compares the energy of the prediction error against the target signal energy. This makes it suitable for audio modelling because the error is measured relative to the strength of the target signal. The DC loss penalises unwanted offset differences between the predicted signal and the recorded target. This is useful in distortion modelling because a learned DC offset can reduce headroom and may indicate a bias in the predicted waveform.
+The ESR-based loss compares the energy of the prediction error against the energy of the target signal, which suits audio modelling because the error is then measured relative to how loud the target actually is. The DC component penalises offset differences between the predicted signal and the recorded target. That is useful in distortion modelling, since a learned DC offset can reduce headroom and often points to a bias in the predicted waveform.
 
-The pre-emphasised ESR path was used to place more emphasis on frequency-dependent error during training. This is relevant for distortion modelling because high-frequency harmonics and transient detail are important parts of the perceived character of a clipped guitar signal.
+The pre-emphasised ESR path puts more weight on frequency-dependent error during training. High-frequency harmonics and transient detail carry a lot of the perceived character of a clipped guitar signal, so emphasising them during training is useful here.
 
 \section{Optimisation and Validation}
 
-The models were trained using the Adam optimiser. Validation was performed every two epochs. A learning-rate scheduling strategy was used so that the learning rate could be reduced when validation improvement slowed. Early stopping was controlled by a validation patience value of 25 checks.
+Both models were trained with the Adam optimiser. Validation ran every two epochs. A learning-rate scheduler reduced the learning rate when validation improvement slowed, and early stopping was controlled by a validation patience of 25 checks.
 
-During training, the notebook stored loss values, validation results, learning-rate history, best-validation information, final test losses, and training time. These statistics were saved separately for each run under a notebook statistics directory. This made it possible to reload the results later without retraining the models.
+During training the notebook stored loss values, validation results, learning-rate history, best-validation information, final test losses, and training time. Each run saved its own statistics into a per-run directory, so the results could be reloaded later without retraining.
 
-The notebook also generated training and validation loss curves, learning-rate plots, per-epoch metric tables, and final comparison tables. These outputs were used to support the results chapter and to compare the LSTM and GRU models under the same training conditions.
+The notebook also generated training and validation loss curves, learning-rate plots, per-epoch metric tables, and final comparison tables. These outputs feed into the results chapter and into the LSTM/GRU comparison.
 
 \section{Model Export and Output Files}
 
-Each trained model was saved under the results directory using a separate folder for the model type. The LSTM and GRU runs used paths of the following form:
+Each trained model was saved under the results directory in a folder named after the model type. The LSTM and GRU runs used paths of the form:
 
 \begin{verbatim}
 ./Results/ds1-LSTM/
 ./Results/ds1-GRU/
 \end{verbatim}
 
-The saved outputs included model JSON files, best-validation model states, generated test audio, and training statistics. The JSON model files contained both architecture metadata and trained weight values. These exported files formed the bridge between the Python training stage and the real-time C++ plugin stage.
+The saved outputs included model JSON files, best-validation model states, generated test audio, and training statistics. The JSON model files contained both architecture metadata and the trained weight values, which is what bridges the Python training stage and the real-time C++ plugin stage.
 
-The notebook also wrote audio examples for comparison, including the target test signal, the model output from the final epoch, and the model output from the best-validation checkpoint. These files were used for waveform inspection, spectrogram comparison, and listening checks during development.
+The notebook also wrote audio examples for comparison: the target test signal, the model output from the final epoch, and the model output from the best-validation checkpoint. These files were used for waveform inspection, spectrogram comparison, and listening checks during development.
 
 \section{Summary}
 
-The training configuration used a controlled comparison between matched LSTM and GRU SimpleRNN models. Both models used mono input and output, one recurrent layer, a hidden size of 24, and an enabled skip connection. They were trained on matched dry and DS-1 processed audio using a weighted ESR/DC loss, Adam optimisation, validation monitoring, learning-rate scheduling, and early stopping. This configuration supported the central aim of the project: to evaluate compact recurrent architectures for Boss DS-1 emulation and prepare the trained models for real-time plugin deployment.
+The configuration is a like-for-like comparison between matched LSTM and GRU SimpleRNN models. Both use mono input and output, one recurrent layer, hidden size 24, and a skip connection. They were trained on matched dry and DS-1 processed audio with a weighted ESR/DC loss, Adam optimisation, validation monitoring, learning-rate scheduling, and early stopping.
